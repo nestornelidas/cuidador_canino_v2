@@ -1,0 +1,25 @@
+CUIDADOR CANINO — AVISO DE LICENCIA Y DERECHOS DE AUTOR
+========================================================
+
+Copyright (c) 2026 ALEXANDRE BELLIDO MONTES. Todos los derechos reservados.
+
+Este software (en adelante, el "Programa") está protegido por la legislación
+de propiedad intelectual e industrial. La titularidad del Programa
+corresponde íntegramente a su autor ALEXANDRE BELLIDO MONTES.
+
+El Programa se distribuye bajo LICENCIA PROPIETARIA. Al adquirir, recibir o
+usar el Programa usted acepta los términos del acuerdo de licencia de usuario
+final (EULA) que acompaña a esta aplicación (archivo EULA.txt).
+
+EN RESUMEN:
+  - Usted puede USAR el Programa para su actividad como cuidador/a canino/a.
+  - NO puede revenderlo, cederlo, alquilarlo, prestarlo ni redistribuirlo.
+  - NO puede modificar, alterar, fusionar, descompilar ni realizar ingeniería
+    inversa sobre el Programa, ni crear obras derivadas.
+  - NO se transfiere la propiedad del Programa ni de su código fuente: solo se
+    concede una licencia de uso.
+
+Para la venta, distribución o cualquier uso comercial no contemplado en este
+documento, contacte previamente con el titular.
+
+Contacto: perroalforjero@gmail.com

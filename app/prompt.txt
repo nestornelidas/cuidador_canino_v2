@@ -1,0 +1,78 @@
+PROMPT COMPLETO PARA GENERAR LA APP "CUIDADOR CANINO" (sin retoques posteriores)
+================================================================================
+Copia y pega este prompt tal cual a un asistente con capacidad de escritura de ficheros. Debe generar una SPA 100% offline sin frameworks que cumpla TODO lo siguiente de una sola vez.
+
+OBJETIVO
+--------
+Aplicacion web para un negocio de cuidado de perros (hospedaje, paseos, guarderia). Gestiona perros, contactos humanos, servicios, eventos esporadicos y plantillas de comunicacion. Todo en el navegador: IndexedDB (perros/contactos/servicios/eventos/plantillas) + localStorage (config). Servir por http://localhost (no file://) por Web Crypto. PWA con manifest.webmanifest y sw.js. Router por hash.
+
+STACK Y ARRANQUE
+----------------
+- HTML+CSS+JS vanilla ES6, sin dependencias.
+- Estructura: app/index.html, css/style.css, js/{app,calc,db,store,templates,ui,dogForm,gate,crypto}.js, js/views/{dashboard,services,dogs,calendar,reports,plantillas,settings}.js, tests/{suite.js,run-browser.js,calc.test.js}
+- Gate (gate.js): contrasena maestra obligatoria al arrancar (Gate.boot bloquea App). PBKDF2 + AES-GCM, salt aleatorio por sesion, blob verify cifrado. Estados: sin clave -> pedir creacion, con clave -> pedir acceso, contexto no seguro file:// -> aviso. Lock borra clave de memoria. FIELDS_VERSION=4. Migracion al desbloquear: si FIELDS_VERSION sube o quedan campos sin prefijo enc:, re-cifrar todo.
+- Calc (calc.js) puro testeable en Node: todayISO, parseISO, fmtDMY, addDaysISO, diffDaysInclusive, daysInMonth, monthGrid(L-D), ageParts/ageText, num/round2, calcServiceTotal, calcTotalSvc (coste_total+plus), calcPendiente (coste_total+plus-paga_senal), calcPendienteSvc (0 si estado finalizado else calcPendiente), calcSenalPrevista, joinNombres (usa "y"/"e" segun inicial ultimo), fmtMoney (es-ES 1.141,00), fmtNum, pad.
+- DB (db.js): IndexedDB cuidador_canino_db v1 con stores dogs/contacts/services/events/templates/config. API promesas y loadAll atomico (clear+insert en una transaccion para import).
+- Store (store.js): defaultConfig{captacion: [Wallapop,Holidog,TopAyuda,Captacion directa,Boca a boca], costes, colores, ocultarDecesos, ocultarRedFlag, comportamientos 4 categorias con items ordenados alfabeticamente, google, logo}, getConfig/setConfig, defaultCaptacion/defaultComportamientos, CRUD dogs/contacts/services/events/templates, listServicesByYear/listServicesInRange/listServicesByDog/dogHasServices, commonContactsForDogs, cleanOrphanContacts, dedupeContacts, dbSize, seed de 5 contactos/5 perros/11 servicios diciembre 2026 (Loki/Nala/Toby/Kira/Bruno) + 2 eventos (07/12 todo dia, 14/12 10:30). Contactos: c1 Ana Wallapop 600111222 @anamtz, c2 Carlos Boca a boca +34 600333444, c3 Lucia Holidog @luciaf, c4 Pedro Captacion directa, c5 Maria TopAyuda. Perros con raza/tamano/sexo/castrado/comportamientos/notas/observaciones/fecha_nacimiento.
+- Crypto (crypto.js): SECRET_FIELDS por tipo: contact nombre/telefono/telegram/whatsapp/otros/referido_por, dog observaciones/notas/notas_medicacion, service notas/medicacion/dosis/frecuencia/notas_medicacion, event descripcion. En claro: contact referido, dog nombre/raza/tamano/sexo/medicacion_expira, service desde/hasta/tipo/costes, event fecha/hora. Prefijo enc: + hash_busqueda SHA256 nombre lower para contactos. save* cifra, list*/get* descifra, export cifra, import descifra con clave de sesion, changePassword re-cifra todo, lock.
+- UI (ui.js): icon() 24px SVG, esc(), toast(), modal({title,body,footer,size}), confirmDialog/confirmTypeDialog, readImageResized(max 800 jpeg 0.85), downloadFile, copyText (clipboard/writeText + execCommand fallback), el(), avatarHtml(size 40 por defecto).
+- Templates (templates.js): DEFAULT_TEMPLATES 5 con orden y contenido multilinea (bienvenida, recordatorio paseo con coste_total, aviso cancelacion, confirmacion reserva con coste_total+pendiente, recordatorio hospedaje). TemplateData.VARIABLES y replaceVars(ctx) con map para {nombre_perro, nombre_contacto, fecha_inicio, fecha_fin, tipo, coste_total, pendiente, notas, manana_o_el, estado} + token condicional {a|b} | {a|b|c} | {a|b|c|d} resuelto por ctx.genero (m/f/pm/pf) donde pm=plural mixto/masc, pf=plural fem. Genero se calcula de sexo de perros seleccionados (1 hembra->f else m, varios todas hembras->pf else pm). Incluye emoticonos Unicode.
+
+REQUISITOS FUNCIONALES DETALLADOS
+----------------------------------
+
+1. DASHBOARD (#/)
+- Secciones: Hospedajes activos hoy, Paseos programados hoy, Proximos servicios, Eventos de hoy. Zelda de ejemplo. Botones arriba "Nuevo servicio" -> ctx.go('servicios/nuevo') y "Nuevo evento" -> Views.calendario.openEventModal(null, ctx). Click en evento -> edicion. Mensaje sin eventos.
+
+2. PERROS
+- Lista #/perros: columnas Foto, Nombre, Raza, Sexo, Tamano, Castrado, Edad. Activo/inactivo badge. Filtrado por ocultarDecesos (fecha_deceso o es_deceso) y ocultarRedFlag (comportamientos contiene RED FLAG). Click fila -> #/perros/edit/:id
+- Formulario dogForm.js reutilizable (vista Perros y alta rapida desde Servicios):
+  Nombre*, Raza, Tamano, Sexo (macho/hembra), Fecha nacimiento, Castrado, Foto (preview, subir/quitar), Deceso checkbox+fecha (fecha visible no disabled, desmarcar limpia fecha, es_deceso true sin fecha permitido, guardado persiste), Contactos humanos * (filas dinamicas: Nombre, Telefono, Whatsapp, Telegram, Otros, Referido select desde config.captacion + Recomendado por solo visible con Boca a boca, se limpia al cambiar), Comportamientos 48 checks en 4 categorias (desde config), Notas comportamiento agrupadas con categoria en negrita auto-cumplimentadas, Observaciones, Plan medicacion: recuadro con Notas (textarea notas_medicacion) + Fecha expiracion (medicacion_expira). NO Tipo/Dosis/Frecuencia. Guardar via saveDogWithContacts (dedupe por telefono/whatsapp/telegram normalizados, sin telefono por nombre, contacto compartido por varios perros, id conservado al reeditar, sin duplicados tras 3 guardados, sin huerfanos). Edicion carga todo (humano, raza, etc, notas medicacion).
+
+3. SERVICIOS
+- Lista #/servicios/list: 11 filas, totales 1.141/1.031, sin columna Base, headers Subtotal y Total (Total = Subtotal+Plus sin negrita), pendiente 0 si finalizado.
+- Formulario #/servicios/nuevo y edit/:id:
+  Tipo Hospedaje/Paseo, buscador #buscaPerroSvc con avatar 48px y filtro en vivo + mensaje vacio, boton Nuevo perro (modal dogForm).
+  Fechas desde/hasta, coste_base (default hospedaje 20 / paseo 12), coste_total (auto/manual), plus, paga_senal, estado (pendiente/confirmado/en_curso/finalizado/cancelado), notas internas (textarea).
+  Paseos: recuadro legend Paseos del servicio con tabla filas (Desplazamiento mins, Paseo mins, Nº paseos, Total + boton quitar), boton Anadir paseo, 1 fila por defecto. Auto: (minDespl+minPaseo)/60*costeBase por paseo * n, subtotal suma, total = subtotal+plus. plus y paga_senal recalculan pendiente.
+  Calculo: Opcion B auto = dias*costeBase*numPerros o paseo como arriba. Si usuario edita coste_total manualmente se respeta; al cambiar fecha/tipo vuelve a auto. Senal prevista 20% mostrada. Al cambiar tipo si coste_base == default anterior se cambia al nuevo default.
+  Recuadros: Cálculo importe (Coste, Total, Estado) por encima de Alertas; en paseos subtotal oculto. Alertas medicacion #alertasBox: por perro seleccionado con plan activo (notas o fecha no vencida) muestra nombre clicable #/perros/edit + Notas y Expira. Mensaje si ninguno, un bloque por perro, en paralelo con Comunicaciones.
+  Alarmas cuidador #alarmaBox antes de comunicaciones: solo Hora (09:00) + enlace "Abrir evento en Google Calendar" a https://calendar.google.com/calendar/render?action=TEMPLATE&text=Tipo: Nombres&dates=YYYYMMDDTHHMMSS/YYYYMMDDTHHMMSS&details=Evento de servicio...Tipo/Perros/[Notas internas]/Desde/Hasta/Total. Detalles entre Perros y Desde solo si notas. Disabled si faltan fechas/perros/hora. Se refresca al escribir notas.
+  Comunicaciones #btnComms: requiere >=1 perro y contacto comun. Modal por contacto con chips, select plantilla (5), textarea, botones Copiar (copyText), WhatsApp (wa.me/<digitos>?text=encodeURIComponent), Telegram (t.me/<user>?text=), Grupo/otro (wa.me/?text=). Vista previa con replaceVars(serviceCtx). serviceCtx lee $n('desde'/'hasta'/'tipo'/'coste_total'/'plus'/'paga_senal'/'estado'/'notas') + nombres via joinNombres y genero + pendiente (calcPendienteSvc) y manana_o_el (desde==manana? "mañana":"el").
+  Validaciones: inicio>fin, coste_base negativo, paseo sin minutos, evento sin hora.
+  Guardado saveService persiste.
+
+4. CALENDARIO (#/calendario)
+- Toolbar prev/today/next, titulo mes largo ES, leyenda 6 colores por estado + eventos.
+- Grilla semanas L-D, header L M X J V S D, celda 84px con daynum.
+- Barras .cal-week relative, .cal-bars absolute top26 z1, .cal-bar absolute h20 gap3. Algoritmo greedy lanes compartido servicios+eventos: orden servicios por desde/hasta, eventos por fecha/hora/descripcion, pack en carril libre -> sin solapes. Eventos son barras 1 dia data-tipo="evento" color evento. BarH y cellMin calculados. Click barra servicio -> servicios/edit/:id, barra evento -> openEventModal.
+- Botones Nuevo servicio / Nuevo evento.
+- Modal evento: Fecha*, Cuando (Todo el dia/A una hora), Hora, Descripcion*, GCal link (todo dia YYYYMMDD/YYYYMMDD o con hora YYYYMMDDTHHMMSS, details Todo el dia/Hora+Fecha+Descripcion), validar, Guardar (saveEvent), Borrar, ctx.refresh. Ruta profunda #/calendario/evento/:id abre modal precargado.
+
+5. INFORMES (#/informes)
+- Filtro ano #repYear + nota cancelados excluidos. Headers ordenables (num desc / texto asc toggle).
+- Rendimiento por ano: tabla Ano, Redito, Media mensual (meses transcurridos si ano actual), Nº servicios, Media por servicio, ▲▼ FACTURACION (variacion (reditoN-reditoPrev)/reditoPrev*100, gVar), Ocupacion (dias distintos /365*100, gOcup), % Fallecidos y % Red flag (prorrateado por perro, fallecido cuenta si fecha_deceso en ano o ano+1, gDead/gRf/gRed). Fila TOTAL.
+- Evolucion mensual: canvas #lineCanvas 900x320 con controles #lineY (Dias con servicios / Reditos) y #lineX (Meses / Anos). drawLineChart(canvas, series, isMoney, labels) con niceStep, grid 4, puntos. Datos mensuales dayM/redArr prorrateados por span, datos anuales yearDayM/yearRed. dataset.dias/redito/years.
+- Perros cuidados: tabla avatar, Nombre, Fecha nacimiento, Edad (num meses para sort), Importe acumulado prorrateado. Badge count perros con servicio finalizado/en_curso.
+- Distribucion por sexo: pie #sexPie/#sexLegend + #sexSin lista sin sexo clicable.
+- Canal captacion: pie #captPie/#captLegend por contacto con referido + #captSin lista sin canal clicable + #captPorCanal selector #captCanalSel (todos los canales de config) + lista #captCanalList perros por canal en periodo (badge links, orden alfa). Respeta filtro ano.
+- Imprimir.
+
+6. PLANTILLAS (#/plantillas)
+- Grid cards Ver/Copiar/Editar. Editor modal: Nombre*, Contenido 10 rows + Variables chips (click inserta token) + hint con sintaxis condicional. Hint general en lista.
+- Variables y condicional ya descritos. 5 por defecto con una que incluye coste_total+pendiente. Soporta emoticonos.
+
+7. CONFIGURACION (#/configuracion)
+- Costes base, Preferencias (ocultarDecesos, ocultarRedFlag), Colores calendario 6, Empresa/logo (upload), Google Calendar, Datos (Exportar JSON cifrado con salt, Importar reemplazo atomico + validacion formato, Borrar todo, Cargar datos ejemplo, Tamano BBDD), Seguridad (Cambiar contrasena re-cifra, Cerrar sesion), Comportamientos (4 categorias editables ordenables renombrables), Canales captacion (CRUD, reset a default).
+
+TESTS
+-----
+tests/suite.js ~14 fases que verifican todo lo anterior (planificador, auditor, persistencia, cascada, export/import, UI destructivo, recalculos, paseos, alertas, comunicaciones con buscador y y/e, lista/calendario/informes con variacion/ocupacion/graficas/sexo/canal/selector/porcentajes/dashboard/dogForm/deceso/alarmas con notas/seed/redflag/unicidad/dedupe/comportamientos/canal compartido/cifrado round-trip). Ejecutar: node tests/run-browser.js (Edge) debe dar RESULTADO: PASS (0 fallos). titulo PASS.
+
+RESTRICCIONES
+-------------
+- Vanilla JS sin npm, CSS sin preprocesador.
+- No crear ficheros innecesarios, preferir edit.
+- Verificar con tests tras cada cambio.
+- Cifrar solo campos personales, fechas operativas en claro.
+- Respetar ctx.go/ctx.refresh y dataset en canvas.

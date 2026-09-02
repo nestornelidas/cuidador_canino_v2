@@ -1,0 +1,127 @@
+ACUERDO DE LICENCIA DE USUARIO FINAL (EULA)
+============================================
+
+CUIDADOR CANINO
+Versión 1.0 — Fecha: [18/08/2026]
+
+Este Acuerdo de Licencia de Usuario Final (en adelante, el "Acuerdo") se
+celebra entre:
+
+  - Alexandre Bellido Montes, con domicilio en C/ Carretera de Piera 33, Martorell y 36516928N, en calidad
+    de LICENCIANTE, y
+
+  - el cliente que adquiere o recibe el Programa (en adelante, el "LICENCIATARIO").
+
+Al instalar, acceder o utilizar el Programa, el Licenciatario manifiesta haber
+leído y aceptado íntegramente el presente Acuerdo.
+
+1. OBJETO
+El Licenciante es titular de todos los derechos de propiedad intelectual e
+industrial sobre el software denominado "Cuidador Canino" (en adelante, el
+"Programa"), incluidos, sin limitación, su código fuente, código objeto,
+documentación, diseño e imágenes.
+
+2. CONCESIÓN DE LICENCIA
+El Licenciante concede al Licenciatario una licencia de uso NO EXCLUSIVA,
+INTRANSFERIBLE, NO SUBLICENCIABLE y REVOCABLE, para el uso del Programa
+exclusivamente para la gestión de la actividad profesional de cuidado de
+animales del Licenciatario, con sujeción a los términos de este Acuerdo.
+
+La licencia se concede por tiempo indefinido mientras el Licenciatario cumpla
+con las obligaciones del presente Acuerdo.
+
+3. RESTRICCIONES
+Queda expresamente prohibido al Licenciatario, sin el consentimiento previo y
+por escrito del Licenciante:
+
+  a) Revender, vender, ceder, transferir, arrendar, alquilar, prestar,
+     sublicenciar o poner a disposición de terceros el Programa, total o
+     parcialmente, por cualquier medio, oneroso o gratuito, incluida su
+     incorporación a otros productos o servicios.
+
+  b) Reproducir, copiar, duplicar o distribuir el Programa o cualquiera de sus
+     componentes, total o parcialmente.
+
+  c) Modificar, adaptar, alterar, traducir, fusionar o crear obras derivadas
+     del Programa o de su código fuente.
+
+  d) Descompilar, desensamblar, descifrar o realizar ingeniería inversa sobre
+     el Programa, salvo que la ley aplicable lo permita de forma imperativa y
+     no pueda excluirse por contrato.
+
+  e) Eliminar o alterar cualquier aviso de copyright, marca o indicación de
+     titularidad que figure en el Programa.
+
+  f) Utilizar el Programa para fines ilícitos o no autorizados por el presente
+     Acuerdo.
+
+4. PROPIEDAD
+El Programa, su código fuente y toda su documentación son propiedad exclusiva
+del Licenciante. El presente Acuerdo NO transfiere al Licenciatario la
+propiedad del Programa ni ningún derecho sobre su código fuente, que
+permanecerán en poder del Licenciante. El Licenciatario únicamente adquiere el
+derecho de uso en los términos pactados.
+
+5. PRECIO Y FORMA DE PAGO
+La licencia se concede contra el pago del precio pactado, que deberá abonarse
+en la forma y plazos acordados. La falta de pago dará derecho al Licenciante a
+suspender el acceso o uso del Programa y a resolver el presente Acuerdo.
+
+6. GARANTÍA Y RESPONSABILIDAD
+  a) El Programa se suministra "tal cual" y "según disponibilidad", sin
+     garantías de ningún tipo, expresas o implícitas, incluidas, sin
+     limitación, las garantías de comerciabilidad, idoneidad para un fin
+     particular o ausencia de errores.
+
+  b) El Licenciante no garantiza que el funcionamiento del Programa sea
+     ininterrumpido o libre de errores, ni que los resultados obtenidos sean
+     exactos o adecuados al uso profesional del Licenciatario.
+
+  c) En la máxima medida permitida por la ley, el Licenciante no será
+     responsable de daños directos, indirectos, incidentales, especiales o
+     consecuentes derivados del uso o de la imposibilidad de uso del Programa,
+     incluidos lucro cesante, pérdida de datos o perjuicio a terceros.
+
+7. DATOS PERSONALES
+El Programa permite al Licenciatario gestionar datos de carácter personal de
+terceros (clientes, animales, etc.). El Licenciatario será responsable de
+cumplir la normativa de protección de datos aplicable (en particular el
+Reglamento (UE) 2016/679 — RGPD) en el tratamiento de dichos datos. El
+Licenciante no accederá a los datos del Licenciatario salvo acuerdo expreso
+en contrario.
+
+8. ENLACES A SERVICIOS DE TERCEROS
+El Programa puede ofrecer enlaces a servicios externos (por ejemplo, Google
+Calendar, Telegram o WhatsApp). Estos servicios son de terceros ajenos al
+Licenciante, que no asume responsabilidad alguna sobre su funcionamiento,
+términos de uso o políticas de privacidad.
+
+9. VIGENCIA Y RESOLUCIÓN
+El incumplimiento por el Licenciatario de cualquiera de las obligaciones del
+presente Acuerdo facultará al Licenciante para resolverlo de forma inmediata,
+sin perjuicio de las demás acciones legales que le correspondan. En caso de
+resolución, el Licenciatario deberá cesar el uso del Programa y destruir o
+devolver todas las copias que posea.
+
+10. LEGISLACIÓN APLICABLE Y JURISDICCIÓN
+El presente Acuerdo se rige por la legislación española. Para cualquier
+controversia que pudiera derivarse del mismo, las partes se someten
+expresamente a los Juzgados y Tribunales de [CIUDAD/PROVINCIA], con renuncia a
+cualquier otro fuero que pudiera corresponderles.
+
+11. DISPOSICIONES GENERALES
+  a) Si alguna cláusula del presente Acuerdo resultara nula o inaplicable, la
+     cláusula se sustituirá por otra que, siendo válida, respete al máximo la
+     voluntad de las partes, manteniéndose el resto del Acuerdo en vigor.
+
+  b) El presente Acuerdo constituye la totalidad del pacto entre las partes y
+     sustituye a cualquier acuerdo o comunicación previa sobre su objeto.
+
+  c) La renuncia a exigir el cumplimiento de una cláusula no constituirá
+     renuncia a su cumplimiento futuro.
+
+En prueba de conformidad, el Licenciatario declara aceptar el presente Acuerdo
+en su totalidad.
+
+Firma del Licenciatario: ______________________________
+Fecha: ____ / ____ / ______
