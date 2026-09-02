@@ -61,6 +61,7 @@
     },
     refresh: function () { render(); },
     lock: function () {
+      try { if (root.Supa && root.Supa.getClient) { var c=root.Supa.getClient(); if(c) c.auth.signOut(); } } catch(e){}
       root.Crypto.lock();
       location.reload();
     },
@@ -97,7 +98,7 @@
     initNav();
     try {
       await DB.open();
-      await Gate.boot(); /* bloquea el arranque hasta que haya contraseña maestra en memoria */
+      await (root.AuthSupa && root.Supa && root.Supa.isConfigured && root.Supa.isConfigured() ? root.AuthSupa.boot : root.Gate.boot)(); /* bloquea el arranque hasta que haya contraseña maestra en memoria */
       /* Migración única: si se amplió el catálogo de campos cifrados o quedaron registros
          previos sin cifrar (antiguo portal/clave sin cifrado), se re-cifran al desbloquear. */
       if (root.Crypto.marksMigration()) {
@@ -108,6 +109,7 @@
       await Store.cleanOrphanContacts();
       await Store.dedupeContacts();
       App.updateBrand();
+      if (root.Sync) { try { root.Sync.startAutoSync(); } catch(e){} }
       render();
     } catch (err) {
       document.getElementById('view').innerHTML =

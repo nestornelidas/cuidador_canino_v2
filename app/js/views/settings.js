@@ -72,6 +72,20 @@
       '<button class="btn btn-primary" id="saveGoogle">' + UI.icon('check') + ' Guardar</button>' +
       '</div></section>';
 
+    /* --- Nube (Supabase) --- */
+    var supaUrl = (root.Supa && root.Supa.getUrl) ? root.Supa.getUrl() : '';
+    var supaKey = (root.Supa && root.Supa.getKey) ? root.Supa.getKey() : '';
+    var isSupaCfg = !!(supaUrl && supaKey);
+    html += '<section class="card"><h2>' + UI.icon('cloud') + ' Nube (Supabase) - sincronización móvil y PC</h2>';
+    html += '<p class="hint">Configura Supabase (gratis) para ver los mismos datos en móvil y PC. Sin configurar, la app sigue 100% offline. Ver <code>supabase/README.md</code> y <code>supabase/schema.sql</code>.</p>';
+    html += '<div class="form-field"><label>Supabase URL</label><input type="text" class="input" id="supaUrl" value="' + UI.esc(supaUrl) + '" placeholder="https://xxxxx.supabase.co"></div>';
+    html += '<div class="form-field"><label>Supabase anon key</label><input type="password" class="input" id="supaKey" value="' + UI.esc(supaKey) + '" placeholder="eyJhbG..." autocomplete="off"></div>';
+    html += '<div class="form-actions"><button class="btn btn-primary" id="saveSupa">' + UI.icon('check') + ' Guardar nube</button> <button class="btn" id="clearSupa">' + UI.icon('x') + ' Desactivar nube</button></div>';
+    html += '<div class="form-field"><div class="static-val" id="supaStatus">' + (isSupaCfg ? 'Configurada - recarga para activar login por email' : 'No configurada (modo offline)') + '</div></div>';
+    html += '<div class="btn-stack"><button class="btn" id="btnSupaPull">' + UI.icon('download') + ' Sincronizar ahora (pull)</button><button class="btn" id="btnSupaPush">' + UI.icon('upload') + ' Subir datos locales a nube (push)</button></div>';
+    html += '<p class="hint">Estado cola: <span id="supaQueueInfo">-</span> · Último pull: <span id="supaLastPull">-</span></p>';
+    html += '</section>';
+
     /* --- Datos --- */
     html += '<section class="card"><h2>' + UI.icon('refresh') + ' Datos (copia de seguridad)</h2>';
     html += '<div class="form-field"><label>Tamaño de la base de datos</label><div class="static-val" id="dbSizeVal">Calculando…</div>' +
@@ -434,6 +448,59 @@
       });
       UI.toast('Configuración de Google Calendar guardada', 'success');
     });
+    /* Nube Supabase */
+    (function(){
+      var saveBtn=document.getElementById('saveSupa');
+      var clearBtn=document.getElementById('clearSupa');
+      var pullBtn=document.getElementById('btnSupaPull');
+      var pushBtn=document.getElementById('btnSupaPush');
+      function updInfo(){
+        try{
+          var q=JSON.parse(localStorage.getItem('cc_sync_queue_v1')||'[]');
+          var el=document.getElementById('supaQueueInfo');
+          if(el) el.textContent=q.length+' pendientes';
+          var lp=localStorage.getItem('cc_sync_last_pull_v1')||'-';
+          var el2=document.getElementById('supaLastPull');
+          if(el2) el2.textContent=lp;
+        }catch(e){}
+      }
+      updInfo();
+      if(saveBtn) saveBtn.addEventListener('click', function(){
+        var u=document.getElementById('supaUrl').value.trim();
+        var k=document.getElementById('supaKey').value.trim();
+        if(!u||!k){ UI.toast('URL y anon key obligatorios','error'); return; }
+        if(u.indexOf('supabase.co')===-1){ UI.toast('URL debe ser https://xxx.supabase.co','error'); return; }
+        root.Supa.setConfig(u,k);
+        UI.toast('Configuración nube guardada. Recarga la página para iniciar sesión con email.','success');
+        document.getElementById('supaStatus').textContent='Configurada - recarga para activar login por email';
+      });
+      if(clearBtn) clearBtn.addEventListener('click', function(){
+        root.Supa.clearConfig();
+        document.getElementById('supaUrl').value='';
+        document.getElementById('supaKey').value='';
+        document.getElementById('supaStatus').textContent='No configurada (modo offline)';
+        UI.toast('Nube desactivada. Modo offline.','info');
+      });
+      if(pullBtn) pullBtn.addEventListener('click', async function(){
+        if(!root.Supa.isConfigured()){ UI.toast('Configura primero Supabase URL/key','error'); return; }
+        var c=root.Supa.getClient();
+        if(!c){ UI.toast('supabase-js no cargado (revisa conexión)','error'); return; }
+        var sess=await root.Supa.getSession();
+        if(!sess){ UI.toast('Inicia sesión con email primero (recarga)','error'); return; }
+        UI.toast('Sincronizando...','info');
+        var r=await root.Sync.pullAll();
+        updInfo(); UI.toast('Pull OK: '+r.pulled+' registros','success'); App.refresh();
+      });
+      if(pushBtn) pushBtn.addEventListener('click', async function(){
+        if(!root.Supa.isConfigured()){ UI.toast('Configura primero','error'); return; }
+        var sess=await root.Supa.getSession();
+        if(!sess){ UI.toast('Inicia sesión primero','error'); return; }
+        UI.toast('Subiendo datos locales...','info');
+        var n=await root.Sync.pushAllLocal();
+        updInfo(); UI.toast('Push OK: '+n+' registros','success');
+      });
+    })();
+
 
     /* Exportar */
     document.getElementById('btnExport').addEventListener('click', async function () {
