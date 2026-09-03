@@ -14,17 +14,29 @@
       '<span class="muted" id="dogCount"></span>' +
       '</div>';
     html += '<div class="table-wrap"><table class="table"><thead><tr>' +
-      '<th></th><th>Nombre</th><th>Raza</th><th>Sexo</th><th>Tamaño</th><th>Castrado</th><th>Nacimiento</th><th>Edad</th><th>Deceso</th>' +
-      '<th>Últ. servicio</th><th class="ta-r">Acciones</th>' +
+      '<th></th><th data-sort="nombre" class="sortable">Nombre</th><th data-sort="raza" class="sortable">Raza</th><th data-sort="sexo" class="sortable">Sexo</th><th data-sort="tamano" class="sortable">Tamaño</th><th data-sort="castrado" class="sortable">Castrado</th><th data-sort="nacimiento" class="sortable">Nacimiento</th><th data-sort="edad" class="sortable">Edad</th><th data-sort="deceso" class="sortable">Deceso</th>' +
+      '<th data-sort="ultimo" class="sortable">Últ. servicio</th><th class="ta-r">Acciones</th>' +
       '</tr></thead><tbody id="dogTbody"></tbody></table></div>';
     html += '</div>';
     container.innerHTML = html;
 
     document.getElementById('nuevoPerro').addEventListener('click', function () { ctx.go('perros/nuevo'); });
+    container.querySelectorAll('th.sortable').forEach(function(th){
+      th.style.cursor='pointer';
+      th.addEventListener('click', function(){
+        var k=th.dataset.sort;
+        if(sortKey===k) sortDir = sortDir==='asc'?'desc':'asc';
+        else { sortKey=k; sortDir = (k==='edad'?'desc':'asc'); }
+        container.querySelectorAll('th.sortable').forEach(function(h){ h.classList.remove('sorted-asc','sorted-desc'); });
+        th.classList.add(sortDir==='asc'?'sorted-asc':'sorted-desc');
+        paint();
+      });
+    });
 
     var input = document.getElementById('buscaPerro');
     input.addEventListener('input', function () { paint(); });
 
+    var sortKey='nombre', sortDir='asc';
     async function paint() {
       var [services, dogs] = await Promise.all([Store.listServices(), Store.listDogs({ includeInactive: false })]);
       var q = input.value.trim().toLowerCase();
@@ -50,6 +62,25 @@
         });
       });
 
+      rows.sort(function(a,b){
+        var dir = sortDir==='asc'?1:-1;
+        function cmpText(x,y){ return String(x||'').localeCompare(String(y||''),'es') * dir; }
+        if(sortKey==='nombre') return cmpText(a.d.nombre, b.d.nombre);
+        if(sortKey==='raza') return cmpText(a.d.raza, b.d.raza);
+        if(sortKey==='sexo') return cmpText(a.d.sexo, b.d.sexo);
+        if(sortKey==='tamano') return cmpText(a.d.tamano, b.d.tamano);
+        if(sortKey==='castrado') return cmpText(String(a.d.castrado), String(b.d.castrado));
+        if(sortKey==='nacimiento') return cmpText(a.d.fecha_nacimiento||'', b.d.fecha_nacimiento||'');
+        if(sortKey==='deceso') return cmpText(a.d.fecha_deceso|| (a.d.es_deceso?'1':''), b.d.fecha_deceso|| (b.d.es_deceso?'1':''));
+        if(sortKey==='ultimo') return cmpText(a.last?a.last.desde:'', b.last?b.last.desde:'');
+        if(sortKey==='edad'){
+          var ea=C.ageParts(a.d.fecha_nacimiento, a.d.fecha_deceso||null); var eb=C.ageParts(b.d.fecha_nacimiento, b.d.fecha_deceso||null);
+          var ma=(ea?ea.y*12+ea.m: -1), mb=(eb?eb.y*12+eb.m: -1);
+          if(ma===mb) return 0;
+          return (ma>mb? -1:1) * (sortDir==='asc'? -1:1);
+        }
+        return 0;
+      });
       document.getElementById('dogCount').textContent = rows.length + ' perros';
       var tbody = document.getElementById('dogTbody');
       if (!rows.length) {
