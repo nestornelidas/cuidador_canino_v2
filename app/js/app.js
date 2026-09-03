@@ -98,6 +98,7 @@
     initNav();
     try {
       await DB.open();
+      if (root.ExtraGate) await root.ExtraGate.boot();
       await (root.AuthSupa && root.Supa && root.Supa.isConfigured && root.Supa.isConfigured() ? root.AuthSupa.boot : root.Gate.boot)(); /* bloquea el arranque hasta que haya contraseña maestra en memoria */
       /* Migración única: si se amplió el catálogo de campos cifrados o quedaron registros
          previos sin cifrar (antiguo portal/clave sin cifrado), se re-cifran al desbloquear. */

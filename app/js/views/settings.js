@@ -104,6 +104,7 @@
     html += '<p class="hint">Los datos personales de los humanos (nombre, teléfono, Telegram y WhatsApp) se guardan cifrados en el dispositivo. La clave maestra solo está en memoria durante la sesión y nunca se almacena.</p>';
     html += '<div class="btn-stack">' +
       '<button class="btn" id="btnChangePw">' + UI.icon('key') + ' Cambiar contraseña maestra</button>' +
+      '<button class="btn btn-soft" id="btnResetPin">' + UI.icon('key') + ' Cambiar PIN de acceso público</button>' +
       '<button class="btn btn-soft" id="btnLockSesion">' + UI.icon('logout') + ' Cerrar sesión</button>' +
       '</div></section>';
 
@@ -622,6 +623,13 @@
     document.getElementById('btnChangePw').addEventListener('click', changePwModal);
     document.getElementById('btnLockSesion').addEventListener('click', function () {
       if (root.App && root.App.lock) root.App.lock();
+    });
+    document.getElementById('btnResetPin').addEventListener('click', async function(){
+      if(!root.ExtraGate){ UI.toast('Gate extra no cargado','error'); return; }
+      var ok=await UI.confirmDialog({title:'Cambiar PIN', message:'Se borrará el PIN actual y al recargar se te pedirá uno nuevo de 6 dígitos. ¿Continuar?', confirmText:'Sí, borrar PIN'});
+      if(!ok) return;
+      try{ localStorage.removeItem(root.ExtraGate.LS_HASH); }catch(e){}
+      UI.toast('PIN borrado. Recarga la página para establecer uno nuevo.','success');
     });
 
     /* Cargar datos de ejemplo */
