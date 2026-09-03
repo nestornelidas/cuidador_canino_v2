@@ -31,20 +31,15 @@
   async function getSharedHash(){
     try{
       if(!root.Supa || !root.Supa.isConfigured() || !root.Supa.getClient()) return null;
-      var c=root.Supa.getClient(); var u=(await c.auth.getUser()).data?.user; if(!u) return null;
-      var r=await c.from('user_config').select('pin_hash').eq('user_id', u.id).maybeSingle();
+      var c=root.Supa.getClient();
+      var r=await c.from('app_pin').select('pin_hash').eq('id',1).maybeSingle();
       return r.data?.pin_hash || null;
     }catch(e){ return null; }
   }
   async function setSharedHash(h){
     try{
-      var c=root.Supa.getClient(); var u=(await c.auth.getUser()).data?.user; if(!u) return;
-      var cur=await c.from('user_config').select('crypto_state').eq('user_id', u.id).maybeSingle();
-      var crypto_state=cur.data?.crypto_state;
-      if(!crypto_state){ try{ crypto_state=JSON.parse(localStorage.getItem('cuidador_canino_crypto_v1')||'null'); }catch(e){ crypto_state=null; } }
-      var row={user_id: u.id, pin_hash: h};
-      if(crypto_state) row.crypto_state=crypto_state;
-      await c.from('user_config').upsert(row, {onConflict:'user_id'});
+      var c=root.Supa.getClient();
+      await c.from('app_pin').upsert({id:1, pin_hash:h}, {onConflict:'id'});
     }catch(e){}
   }
   function boot(){
