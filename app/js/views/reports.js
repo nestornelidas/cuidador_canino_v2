@@ -167,7 +167,7 @@
     function renderDogs() {
       var tbody = document.getElementById('dogsTbody');
       if (!dogRows.length) {
-        tbody.innerHTML = '<tr><td colspan="5" class="empty-cell">Sin perros con servicios en el período seleccionado.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="3" class="empty-cell">Sin perros con servicios en el período seleccionado.</td></tr>';
         return;
       }
       var sorted = dogRows.slice();
@@ -178,7 +178,7 @@
         return '<tr class="dog-row" data-id="' + d.id + '">' +
           '<td>' + UI.avatarHtml(d, 40) + '</td>' +
           '<td><strong>' + UI.esc(d.nombre) + '</strong>' + (d.activo === false ? ' <span class="badge badge-cancelado">inactivo</span>' : '') + '</td>' +
-          '<td>' + C.fmtDMY(d.fecha_nacimiento) + '</td>' +          '<td><strong>' + C.fmtMoney(r.acum) + '</strong></td></tr>';
+          '<td><strong>' + C.fmtMoney(r.acum) + '</strong></td></tr>';
       }).join('');
       tbody.querySelectorAll('.dog-row').forEach(function (tr) {
         tr.addEventListener('click', function () { ctx.go('perros/edit/' + tr.dataset.id); });
