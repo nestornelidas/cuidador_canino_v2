@@ -6,6 +6,27 @@
   function secure() { return !!(root.crypto && root.crypto.subtle); }
 
   var SS_PW='cc_master_pw_sess';
+
+  async function syncCryptoState(pw){
+    try{
+      var c=Supa.getClient(); if(!c) return;
+      var user=(await c.auth.getUser()).data?.user; if(!user) return;
+      var sel=await c.from('user_config').select('crypto_state').eq('user_id', user.id).maybeSingle();
+      var remote=sel.data?.crypto_state;
+      var local=null; try{ local=JSON.parse(localStorage.getItem('cuidador_canino_crypto_v1')||'null'); }catch(e){}
+      if(!remote && local){
+        await c.from('user_config').upsert({user_id: user.id, crypto_state: local}, {onConflict:'user_id'});
+      } else if(remote && local && remote.salt!==local.salt){
+        // conflicto: usa remoto (es el que cifró los datos en la nube)
+        // re-escribe local con remoto y reintenta unlock con pw
+        Crypto.setState(remote);
+        await Crypto.unlock(pw);
+      } else if(remote && !local){
+        Crypto.setState(remote);
+        await Crypto.unlock(pw);
+      }
+    }catch(e){ console.warn('[Auth] syncCryptoState',e); }
+  }
   function hasSupaSession() {
     if (!Supa || !Supa.isConfigured() || !Supa.getClient()) return Promise.resolve(false);
     return Supa.getSession().then(function (s) { return !!s; }).catch(function () { return false; });
@@ -63,6 +84,7 @@
         var st = null;
         try { st = JSON.parse(localStorage.getItem('cuidador_canino_crypto_v1') || 'null'); } catch (e) {}
         try{ sessionStorage.setItem(SS_PW, pw); }catch(e){}
+        await syncCryptoState(pw);
         if (Crypto.configured()) {
           var ok = await Crypto.unlock(pw);
           if (!ok) { // contraseña supabase distinta de la maestra previa -> re-setup
@@ -111,6 +133,8 @@
       // Suave: si hay sesión Supabase y pw en sessionStorage, auto-desbloquea sin pedir
       try{
         var sessPw=null; try{ sessPw=sessionStorage.getItem(SS_PW); }catch(e){}
+        // intenta traer salt remoto antes de auto-unlock
+        try{ var c2=Supa.getClient(); var u2=(await c2.auth.getUser()).data?.user; if(u2){ var r2=await c2.from('user_config').select('crypto_state').eq('user_id', u2.id).maybeSingle(); if(r2.data?.crypto_state) Crypto.setState(r2.data.crypto_state); } }catch(e){}
         if(sessPw && Crypto.configured() && !Crypto.isUnlocked()){
           var ok=await Crypto.unlock(sessPw);
           if(ok){ if(root.Sync){ root.Sync.hookStore(); root.Sync.startAutoSync(); } resolve(); return; }

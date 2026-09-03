@@ -85,6 +85,7 @@
   }
 
   function writeState(st) { localStorage.setItem(CRYPTO_KEY, JSON.stringify(st)); }
+  function setState(st){ if(st) writeState(st); }
 
   function isEnc(v) { return typeof v === 'string' && v.slice(0, 4) === PREFIX; }
 
@@ -204,6 +205,7 @@
     SECRET_FIELDS: SECRET_FIELDS.slice(),
     fieldsFor: fieldsFor,
     configured: configured,
+    readState: readState,
     isUnlocked: isUnlocked,
     salt: salt,
     fieldsVersion: fieldsVersion,
@@ -213,6 +215,7 @@
     unlock: unlock,
     lock: lock,
     deriveWith: deriveWith,
+    setState: setState,
     resetForTest: resetForTest,
     encryptRecord: encryptRecord,
     decryptRecord: decryptRecord,
