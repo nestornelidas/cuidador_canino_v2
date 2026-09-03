@@ -50,7 +50,9 @@
       try{ if(sessionStorage.getItem(SS_OK)==='1'){ resolve(); return; } }catch(e){}
       try{ var ts=parseInt(localStorage.getItem(LS_TS)||'0',10); if(ts && Date.now()-ts < 8*60*60*1000 && sessionStorage.getItem(SS_OK)==='1'){ resolve(); return; } }catch(e){}
       var shared=await getSharedHash();
-      var existing = shared || getHash();
+      var localHash=getHash();
+      if(!shared && localHash){ await setSharedHash(localHash); shared=localHash; }
+      var existing = shared || localHash;
       var isShared = !!shared;
       var gate = overlayEl();
       document.body.appendChild(gate);
