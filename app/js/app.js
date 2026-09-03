@@ -103,10 +103,9 @@
     function isScrollableH(el){
       if(!el) return false;
       var cur=el;
-      for(var i=0;i<4 && cur; i++){
-        if(cur.scrollWidth > cur.clientWidth + 5 && cur.scrollWidth > 0) return true;
-        // también tablas dentro de card
-        if(cur.classList && (cur.classList.contains('table') || cur.classList.contains('card') || cur.classList.contains('table-responsive')) && cur.scrollWidth > cur.clientWidth) return true;
+      for(var i=0;i<6 && cur; i++){
+        if(cur.scrollWidth > cur.clientWidth + 5) return true;
+        if(cur.classList && cur.classList.contains('table-wrap') && cur.scrollWidth > cur.clientWidth) return true;
         cur=cur.parentElement;
       }
       return false;
