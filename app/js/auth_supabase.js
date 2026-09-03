@@ -5,6 +5,7 @@
 
   function secure() { return !!(root.crypto && root.crypto.subtle); }
 
+  var SS_PW='cc_master_pw_sess';
   function hasSupaSession() {
     if (!Supa || !Supa.isConfigured() || !Supa.getClient()) return Promise.resolve(false);
     return Supa.getSession().then(function (s) { return !!s; }).catch(function () { return false; });
@@ -61,14 +62,15 @@
         // Deriva clave Crypto con la misma contraseña -> mantiene cifrado enc: compatible con local
         var st = null;
         try { st = JSON.parse(localStorage.getItem('cuidador_canino_crypto_v1') || 'null'); } catch (e) {}
+        try{ sessionStorage.setItem(SS_PW, pw); }catch(e){}
         if (Crypto.configured()) {
           var ok = await Crypto.unlock(pw);
           if (!ok) { // contraseña supabase distinta de la maestra previa -> re-setup
-            await Crypto.setup(pw);
+            await Crypto.setup(pw); try{ sessionStorage.setItem(SS_PW, pw); }catch(e){}
             if (root.Store) await root.Store.encryptAll();
           }
         } else {
-          await Crypto.setup(pw);
+          await Crypto.setup(pw); try{ sessionStorage.setItem(SS_PW, pw); }catch(e){}
           if (root.Store) await root.Store.encryptAll();
         }
         // Sincronización inicial
@@ -106,6 +108,14 @@
         var sess = await Supa.getSession();
         if (sess) { if (root.Sync) { root.Sync.hookStore(); root.Sync.startAutoSync(); } resolve(); return; }
       }
+      // Suave: si hay sesión Supabase y pw en sessionStorage, auto-desbloquea sin pedir
+      try{
+        var sessPw=null; try{ sessPw=sessionStorage.getItem(SS_PW); }catch(e){}
+        if(sessPw && Crypto.configured() && !Crypto.isUnlocked()){
+          var ok=await Crypto.unlock(sessPw);
+          if(ok){ if(root.Sync){ root.Sync.hookStore(); root.Sync.startAutoSync(); } resolve(); return; }
+        }
+      }catch(e){}
       // Si hay sesión Supabase pero Crypto bloqueado -> pedir contraseña para desbloquear (misma que supabase)
       var hasSess = await hasSupaSession();
       if (hasSess && Crypto.configured() && !Crypto.isUnlocked()) {

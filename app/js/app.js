@@ -62,6 +62,7 @@
     refresh: function () { render(); },
     lock: function () {
       try { if (root.Supa && root.Supa.getClient) { var c=root.Supa.getClient(); if(c) c.auth.signOut(); } } catch(e){}
+      try{ sessionStorage.removeItem('cc_extra_pin_ok_session'); sessionStorage.removeItem('cc_master_pw_sess'); localStorage.removeItem('cc_extra_pin_ts'); }catch(e){}
       root.Crypto.lock();
       location.reload();
     },

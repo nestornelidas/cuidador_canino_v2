@@ -26,10 +26,15 @@
     el.setAttribute('aria-modal','true');
     return el;
   }
+  var SS_OK='cc_extra_pin_ok_session';
+  var LS_TS='cc_extra_pin_ts';
   function boot(){
     return new Promise(function(resolve){
       if (!shouldRun()) { resolve(); return; }
       if (!root.crypto || !root.crypto.subtle) { resolve(); return; }
+      try{ if(sessionStorage.getItem(SS_OK)==='1'){ resolve(); return; } }catch(e){}
+      // expira a las 8h
+      try{ var ts=parseInt(localStorage.getItem(LS_TS)||'0',10); if(ts && Date.now()-ts < 8*60*60*1000 && sessionStorage.getItem(SS_OK)==='1'){ resolve(); return; } }catch(e){}
       var existing = getHash();
       var gate = overlayEl();
       document.body.appendChild(gate);
@@ -50,6 +55,7 @@
           if(p1!==p2){ err.textContent='Los PIN no coinciden.'; err.hidden=false; return; }
           var h=await shaHex(p1);
           setHash(h);
+          try{ sessionStorage.setItem(SS_OK,'1'); localStorage.setItem(LS_TS,String(Date.now())); }catch(e){}
           gate.remove();
           resolve();
         });
@@ -65,7 +71,7 @@
         async function go(){
           var p=gate.querySelector('#epIn').value.trim();
           var h=await shaHex(p);
-          if(h===getHash()){ gate.remove(); resolve(); }
+          if(h===getHash()){ try{ sessionStorage.setItem(SS_OK,'1'); localStorage.setItem(LS_TS,String(Date.now())); }catch(e){} gate.remove(); resolve(); }
           else { tries++; err2.textContent='PIN incorrecto. Intento '+tries+'/3'; err2.hidden=false; if(tries>=3) { err2.textContent='PIN incorrecto. Recarga para reintentar.'; gate.querySelector('#epGo').disabled=true; } }
         }
         gate.querySelector('#epGo').addEventListener('click', go);
