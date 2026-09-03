@@ -94,6 +94,56 @@
     if (lockBtn) lockBtn.addEventListener('click', function () { App.lock(); });
   }
 
+
+  // Swipe móvil: deslizar en #view cambia de pestaña (respeta tablas con scroll horizontal)
+  (function(){
+    var ORDER=['dashboard','calendario','perros','servicios','informes','plantillas','configuracion'];
+    var startX=0, startY=0, startEl=null, ignore=false;
+    function isMobile(){ return window.matchMedia && window.matchMedia('(max-width: 900px)').matches; }
+    function isScrollableH(el){
+      if(!el) return false;
+      var cur=el;
+      for(var i=0;i<4 && cur; i++){
+        if(cur.scrollWidth > cur.clientWidth + 5 && cur.scrollWidth > 0) return true;
+        // también tablas dentro de card
+        if(cur.classList && (cur.classList.contains('table') || cur.classList.contains('card') || cur.classList.contains('table-responsive')) && cur.scrollWidth > cur.clientWidth) return true;
+        cur=cur.parentElement;
+      }
+      return false;
+    }
+    var view=document.getElementById('view');
+    if(!view) return;
+    view.addEventListener('touchstart', function(e){
+      if(!isMobile()) return;
+      if(e.touches.length!==1) return;
+      var t=e.touches[0];
+      startX=t.clientX; startY=t.clientY; startEl=e.target;
+      // si empieza en input/textarea/select no swipe
+      if(startEl.closest('input, textarea, select, button, a')) { ignore=true; return; }
+      if(isScrollableH(startEl)) { ignore=true; return; }
+      ignore=false;
+    }, {passive:true});
+    view.addEventListener('touchend', function(e){
+      if(!isMobile() || ignore) return;
+      if(e.changedTouches.length!==1) return;
+      var t=e.changedTouches[0];
+      var dx=t.clientX - startX, dy=t.clientY - startY;
+      if(Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy)*1.2) return;
+      // si el gesto fue sobre tabla que puede hacer scroll horizontal, ignorar (ya se dejó desplazar tabla)
+      if(isScrollableH(startEl)) return;
+      var cur=parseHash().name;
+      var idx=ORDER.indexOf(cur);
+      if(idx===-1) idx=0;
+      if(dx < 0){ // swipe izq -> siguiente
+        var nxt=ORDER[(idx+1)%ORDER.length];
+        App.go(nxt);
+      } else { // swipe der -> anterior
+        var prev=ORDER[(idx-1+ORDER.length)%ORDER.length];
+        App.go(prev);
+      }
+    }, {passive:true});
+  })();
+
   window.addEventListener('hashchange', render);
   document.addEventListener('DOMContentLoaded', async function () {
     initNav();
