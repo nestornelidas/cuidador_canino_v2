@@ -764,8 +764,8 @@
       var sorted = dogRows.slice();
       if (dogSort) sorted.sort(makeCmp(dogSort.type, dogSort.key, dogSort.dir));
       else sorted.sort(makeCmp('text', 'nombre', 1));
-      var rows = [['Nombre', 'Fecha nacimiento', 'Edad', 'Importe acumulado', 'Nº servicios']];
-      sorted.forEach(function (r) { rows.push([r.d.nombre || '', r.d.fecha_nacimiento ? C.fmtDMY(r.d.fecha_nacimiento) : '', r.edadText || '', r.acum, r.n]); });
+      var rows = [['Nombre', 'Importe acumulado', 'Nº servicios']];
+      sorted.forEach(function (r) { rows.push([r.d.nombre || '', r.acum, r.n]); });
       if (!sorted.length) rows.push(['Sin datos', '', '', '', '']);
       var yf3 = yearSel.value || 'todos';
       downloadCSV('perros-' + yf3 + '.csv', rows);
