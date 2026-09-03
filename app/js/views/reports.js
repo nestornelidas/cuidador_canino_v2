@@ -39,8 +39,6 @@
     html += '<section class="card print-area"><div class="chart-head"><h2>' + UI.icon('dog') + ' Perros cuidados <span class="count-badge" id="dogsCount">0</span></h2><button class="btn btn-soft btn-sm no-print" id="csvDogs">' + UI.icon('download') + ' CSV</button></div>';
     html += '<div class="table-wrap"><table class="table"><thead><tr>' +
       '<th></th><th data-key="nombre" data-type="text">Nombre</th>' +
-      '<th data-key="nacIso" data-type="text">Fecha nacimiento</th>' +
-      '<th data-key="edad" data-type="num">Edad</th>' +
       '<th data-key="acum" data-type="num">Importe acumulado</th>' +
       '</tr></thead><tbody id="dogsTbody"></tbody></table></div>';
     html += '</section>';
@@ -180,9 +178,7 @@
         return '<tr class="dog-row" data-id="' + d.id + '">' +
           '<td>' + UI.avatarHtml(d, 40) + '</td>' +
           '<td><strong>' + UI.esc(d.nombre) + '</strong>' + (d.activo === false ? ' <span class="badge badge-cancelado">inactivo</span>' : '') + '</td>' +
-          '<td>' + C.fmtDMY(d.fecha_nacimiento) + '</td>' +
-          '<td>' + UI.esc(r.edadText) + '</td>' +
-          '<td><strong>' + C.fmtMoney(r.acum) + '</strong></td></tr>';
+          '<td>' + C.fmtDMY(d.fecha_nacimiento) + '</td>' +          '<td><strong>' + C.fmtMoney(r.acum) + '</strong></td></tr>';
       }).join('');
       tbody.querySelectorAll('.dog-row').forEach(function (tr) {
         tr.addEventListener('click', function () { ctx.go('perros/edit/' + tr.dataset.id); });
