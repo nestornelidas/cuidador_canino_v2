@@ -39,7 +39,12 @@
   async function setSharedHash(h){
     try{
       var c=root.Supa.getClient(); var u=(await c.auth.getUser()).data?.user; if(!u) return;
-      await c.from('user_config').upsert({user_id: u.id, pin_hash: h, crypto_state: JSON.parse(localStorage.getItem('cuidador_canino_crypto_v1')||'{}')}, {onConflict:'user_id'});
+      var cur=await c.from('user_config').select('crypto_state').eq('user_id', u.id).maybeSingle();
+      var crypto_state=cur.data?.crypto_state;
+      if(!crypto_state){ try{ crypto_state=JSON.parse(localStorage.getItem('cuidador_canino_crypto_v1')||'null'); }catch(e){ crypto_state=null; } }
+      var row={user_id: u.id, pin_hash: h};
+      if(crypto_state) row.crypto_state=crypto_state;
+      await c.from('user_config').upsert(row, {onConflict:'user_id'});
     }catch(e){}
   }
   function boot(){
