@@ -5,8 +5,9 @@
   var LS_KEY = 'cc_supabase_key';
   var _client = null;
 
-  function getUrl() { try { return localStorage.getItem(LS_URL) || ''; } catch (e) { return ''; } }
-  function getKey() { try { return localStorage.getItem(LS_KEY) || ''; } catch (e) { return ''; } }
+  var _envCache=null;
+  function getUrl() { try { var v=localStorage.getItem(LS_URL); if(v) return v; if(_envCache && _envCache.url) return _envCache.url; try{ var r=new XMLHttpRequest(); r.open('GET','supabase-config.json',false); r.send(null); if(r.status===200){ _envCache=JSON.parse(r.responseText); if(_envCache.url) return _envCache.url; } }catch(e){} return ''; } catch (e) { return ''; } }
+  function getKey() { try { var v=localStorage.getItem(LS_KEY); if(v) return v; if(_envCache && _envCache.key) return _envCache.key; try{ var r=new XMLHttpRequest(); r.open('GET','supabase-config.json',false); r.send(null); if(r.status===200){ _envCache=JSON.parse(r.responseText); if(_envCache.key) return _envCache.key; } }catch(e){} return ''; } catch (e) { return ''; } }
 
   function isConfigured() {
     var u = getUrl(), k = getKey();

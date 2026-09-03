@@ -1,0 +1,4 @@
+{
+  "buildCommand": "node -e \"const fs=require('fs'); fs.writeFileSync('supabase-config.json', JSON.stringify({url:process.env.SUPABASE_URL||'',key:process.env.SUPABASE_ANON_KEY||''}))\"",
+  "outputDirectory": "."
+}
