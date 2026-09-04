@@ -97,9 +97,26 @@
         await syncCryptoState(pw);
         if (Crypto.configured()) {
           var ok = await Crypto.unlock(pw);
-          if (!ok) { // contraseña supabase distinta de la maestra previa -> re-setup
-            await Crypto.setup(pw); try{ sessionStorage.setItem(SS_PW, pw); }catch(e){}
-            if (root.Store) await root.Store.encryptAll();
+          if (!ok) {
+            // La contraseña de la nube no abre los datos de este dispositivo.
+            // NUNCA re-cifrar a ciegas: se pide la antigua y se migra de forma
+            // segura (changeMasterPassword verifica antes de tocar nada).
+            var oldPw = (root.Gate && root.Gate.askPassword)
+              ? await root.Gate.askPassword('La contraseña de la nube no coincide con la que cifraba los datos de este dispositivo. Introduce la contraseña ANTIGUA para migrar tus datos sin perderlos. Si no la recuerdas, cancela y haz antes una copia de seguridad.')
+              : null;
+            if (oldPw === null || oldPw === '') throw new Error('Migración de cifrado cancelada. Tus datos locales siguen intactos.');
+            if (!root.Store || !root.Store.changeMasterPassword) throw new Error('No se puede migrar el cifrado en este dispositivo.');
+            btn.textContent = 'Migrando cifrado…';
+            await root.Store.changeMasterPassword(oldPw, pw);
+            try { sessionStorage.setItem(SS_PW, pw); } catch (e2) {}
+            // publica el nuevo estado (salt) en la nube para los otros dispositivos
+            try {
+              var cUp = Supa.getClient();
+              var gUp = await cUp.auth.getUser();
+              var uUp = gUp && gUp.data && gUp.data.user;
+              var stNew = Crypto.readState ? Crypto.readState() : null;
+              if (uUp && stNew) await cUp.from('user_config').upsert({ user_id: uUp.id, crypto_state: stNew }, { onConflict: 'user_id' });
+            } catch (eUp) { console.warn('[Auth] no se pudo publicar crypto_state', eUp); }
           }
         } else {
           await Crypto.setup(pw); try{ sessionStorage.setItem(SS_PW, pw); }catch(e){}
