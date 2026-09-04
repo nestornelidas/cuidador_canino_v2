@@ -72,23 +72,37 @@
     }
   }
 
+  /* Mutex: nunca dos pasadas solapadas. Si entran elementos nuevos durante una
+     pasada, se hace otra vuelta (acotada); si solo quedan fallos, se sale. */
+  var _pushing = false;
   async function pushQueue() {
     if (!isOnline()) return 0;
     var c = root.Supa && root.Supa.getClient ? root.Supa.getClient() : null;
     if (!c || !root.Supa.isConfigured()) return 0;
     var sess = await root.Supa.getSession();
     if (!sess) return 0;
-    var q = loadQueue();
-    if (!q.length) return 0;
-    var ok = 0;
-    var remaining = [];
-    for (var i = 0; i < q.length; i++) {
-      var e = q[i];
-      var done = await pushOne(e.table, e.id);
-      if (done) ok++; else remaining.push(e);
+    if (_pushing) return 0;
+    _pushing = true;
+    var totalOk = 0;
+    try {
+      for (var pass = 0; pass < 5; pass++) {
+        var q = loadQueue();
+        if (!q.length) break;
+        var remaining = [];
+        for (var i = 0; i < q.length; i++) {
+          var e = q[i];
+          var done = await pushOne(e.table, e.id);
+          if (done) totalOk++; else remaining.push(e);
+        }
+        saveQueue(remaining);
+        if (!remaining.length) break;
+        // otra vuelta solo si entraron elementos nuevos durante la pasada
+        if (loadQueue().length <= remaining.length) break;
+      }
+    } finally {
+      _pushing = false;
     }
-    saveQueue(remaining);
-    return ok;
+    return totalOk;
   }
 
   async function pullAll() {

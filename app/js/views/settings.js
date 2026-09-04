@@ -548,6 +548,14 @@
           UI.toast('Importación correcta: ' + counts.dogs + ' perros, ' + counts.services + ' servicios, ' + counts.contacts + ' contactos, ' + counts.templates + ' plantillas.', 'success');
           App.updateBrand();
           App.refresh();
+          // Sube lo importado a la nube para que el otro dispositivo no
+          // resucite los datos anteriores al sincronizar.
+          try {
+            if (root.Sync && root.Sync.pushAllLocal) {
+              var pushed = await root.Sync.pushAllLocal();
+              if (pushed > 0) UI.toast('Nube actualizada: ' + pushed + ' registros', 'info');
+            }
+          } catch (ePush) { console.warn('[Import] push nube', ePush); }
         } catch (e) {
           UI.toast('Error al importar: ' + e.message, 'error');
         }
