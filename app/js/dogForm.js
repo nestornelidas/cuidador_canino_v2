@@ -259,6 +259,25 @@
       if (el0) el0.focus();
     }
 
+    /* Sanea el HTML del campo contenteditable: elimina scripts, iframes,
+       manejadores on* y URLs javascript: que puedan colarse al pegar desde una
+       web. Conserva el formato básico (div/br/strong/em/listas). */
+    function sanitizeNotas(html) {
+      var tmp = document.createElement('div');
+      tmp.innerHTML = String(html || '');
+      tmp.querySelectorAll('script,style,iframe,object,embed,link,meta,form,input,button,select,textarea,video,audio').forEach(function (n) { n.remove(); });
+      tmp.querySelectorAll('*').forEach(function (n) {
+        Array.from(n.attributes || []).forEach(function (a) {
+          if (/^on/i.test(a.name)) n.removeAttribute(a.name);
+        });
+        ['src', 'href', 'xlink:href', 'action', 'srcset'].forEach(function (at) {
+          var v = n.getAttribute ? n.getAttribute(at) : null;
+          if (v && /^\s*javascript:/i.test(v)) n.removeAttribute(at);
+        });
+      });
+      return tmp.innerHTML;
+    }
+
     function collect() {
       var d = {
         id: dog.id,
@@ -278,7 +297,7 @@
         notas_medicacion: (form.querySelector('[name="notas_medicacion"]').value || '').trim() || null,
         medicacion_expira: form.querySelector('[name="medicacion_expira"]').value || null,
         comportamientos: checkedBehaviors().length ? checkedBehaviors() : null,
-        notas: (txtNotas.innerHTML || '').trim() || null,
+        notas: sanitizeNotas(txtNotas.innerHTML).trim() || null,
         foto: dog.foto || null,
         activo: dog.activo !== false
       };

@@ -162,8 +162,9 @@
         root.Crypto.markFieldsCurrent();
       }
       await Store.ensureDefaultTemplates();
-      await Store.cleanOrphanContacts();
-      await Store.dedupeContacts();
+      /* La limpieza de huérfanos/duplicados ya corre en importAll y en cada
+         guardado (saveContact fusiona al vuelo): no se repite en cada arranque
+         para no descifrar toda la base 3 veces al abrir la app. */
       App.updateBrand();
       if (root.Sync) { try { root.Sync.startAutoSync(); } catch(e){} }
       render();

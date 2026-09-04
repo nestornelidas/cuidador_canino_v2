@@ -49,9 +49,19 @@
 
     var errEl = container.querySelector('#suErr');
     function showErr(m) { errEl.textContent = m; errEl.hidden = false; }
-    function checkRules(pw) { return pw.length >= 8 && /[A-ZÁÉÍÓÚÑ]/.test(pw) && /\d/.test(pw); }
+    function checkRules(pw) { return pw.length >= 8 && /[A-ZÁÉÍÓÚÜÑ]/.test(pw) && /\d/.test(pw); }
 
-    container.querySelector('#suToggle').addEventListener('click', function (e) { e.preventDefault(); renderSupaGate(container, isLogin ? 'signup' : 'login'); });
+    // Registro de cuentas nuevas desactivado en Supabase: no se muestra formulario
+    // de alta, se informa al usuario en español en lugar del error genérico inglés.
+    container.querySelector('#suToggle').addEventListener('click', function (e) {
+      e.preventDefault();
+      if (isLogin) {
+        errEl.textContent = 'El registro de cuentas nuevas está desactivado. Si necesitas acceso, pídelo al administrador. Si ya tienes cuenta, inicia sesión con tu email.';
+        errEl.hidden = false; errEl.style.color = '#1d4ed8';
+      } else {
+        renderSupaGate(container, 'login');
+      }
+    });
     container.querySelector('#suOffline').addEventListener('click', function (e) {
       e.preventDefault();
       container.remove();
@@ -61,7 +71,7 @@
       e.preventDefault();
       var email = container.querySelector('#suEmail').value.trim();
       if (!email) { showErr('Escribe tu email para recuperar la contraseña.'); return; }
-      Supa.getClient().auth.resetPasswordForEmail(email).then(function (r) {
+      Supa.getClient().auth.resetPasswordForEmail(email, { redirectTo: location.origin + location.pathname }).then(function (r) {
         if (r.error) showErr(r.error.message);
         else { errEl.textContent = 'Si el email existe, recibirás un enlace para restablecer la contraseña.'; errEl.hidden = false; errEl.style.color = '#16a34a'; }
       });
@@ -107,7 +117,11 @@
         // resuelve boot
         if (root.AuthSupa._resolve) { var r = root.AuthSupa._resolve; root.AuthSupa._resolve = null; r(); }
       } catch (e) {
-        showErr(e && e.message ? e.message : 'No se pudo autenticar.');
+        var msg = e && e.message ? e.message : 'No se pudo autenticar.';
+        if (/signups? not allowed|signup.*disabled|registration.*disabled/i.test(msg)) {
+          msg = 'El registro de cuentas nuevas está desactivado. Pide tu cuenta al administrador.';
+        }
+        showErr(msg);
         btn.disabled = false; btn.innerHTML = UI.icon('check') + ' ' + UI.esc(isLogin ? 'Entrar' : 'Crear cuenta');
       }
     });

@@ -7,4 +7,4 @@ create table if not exists user_config (
 alter table user_config enable row level security;
 drop policy if exists "own config" on user_config;
 create policy "own config" on user_config for all to authenticated using (auth.uid()=user_id) with check (auth.uid()=user_id);
-grant all on table user_config to anon, authenticated;
+grant all on table user_config to authenticated;

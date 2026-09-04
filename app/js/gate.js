@@ -30,8 +30,10 @@
 
   function secure() { return !!(root.crypto && root.crypto.subtle); }
 
+  /* Misma regla en gate.js, auth_supabase.js y settings.js (cambio de maestra):
+     8+ caracteres, 1 mayúscula (incluye vocales acentuadas, Ü y Ñ) y 1 número. */
   function checkRules(pw) {
-    return pw.length >= 8 && /[A-ZÀ-ÜÑ]/.test(pw) && /\d/.test(pw);
+    return pw.length >= 8 && /[A-ZÁÉÍÓÚÜÑ]/.test(pw) && /\d/.test(pw);
   }
 
   function card(title, body) {

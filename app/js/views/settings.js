@@ -580,7 +580,7 @@
           var nw = ov.querySelector('#cpw2').value;
           var nw2 = ov.querySelector('#cpw3').value;
           var err = ov.querySelector('#cpwErr');
-          if (!(nw.length >= 8 && /[A-ZÀ-ÜÑ]/.test(nw) && /\d/.test(nw))) {
+          if (!(nw.length >= 8 && /[A-ZÁÉÍÓÚÜÑ]/.test(nw) && /\d/.test(nw))) {
             err.textContent = 'La nueva contraseña debe tener al menos 8 caracteres, una mayúscula y un número.';
             err.hidden = false;
             return;
