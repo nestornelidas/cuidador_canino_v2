@@ -67,11 +67,13 @@
     return toISO(d);
   }
 
-  /* Días naturales (inclusive) entre dos fechas ISO. 1-Dic a 3-Dic = 3. */
+  /* Días naturales (inclusive) entre dos fechas ISO. 1-Dic a 3-Dic = 3. UTC para evitar DST. */
   function diffDaysInclusive(fromISO, toISO) {
     var a = parseISO(fromISO), b = parseISO(toISO);
     if (!a || !b) return NaN;
-    return Math.round((b - a) / MS_DAY) + 1;
+    var ua = Date.UTC(a.getFullYear(), a.getMonth(), a.getDate());
+    var ub = Date.UTC(b.getFullYear(), b.getMonth(), b.getDate());
+    return Math.round((ub - ua) / MS_DAY) + 1;
   }
 
   function daysInMonth(year, month0) { return new Date(year, month0 + 1, 0).getDate(); }

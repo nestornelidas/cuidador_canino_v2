@@ -67,7 +67,12 @@
     }).sort(function (a, b) { return a.desde.localeCompare(b.desde) || a.hasta.localeCompare(b.hasta); });
 
     var cacheKey = y + '-' + m;
-    var weeks = gridCache[cacheKey] || (gridCache[cacheKey] = C.monthGrid(y, m));
+    var weeks = gridCache[cacheKey];
+    if (!weeks) {
+      weeks = gridCache[cacheKey] = C.monthGrid(y, m);
+      var keys = Object.keys(gridCache);
+      if (keys.length > 12) delete gridCache[keys[0]];
+    }
 
     var html = '';
     html += '<div class="view-head"><h1>Calendario</h1><div class="view-actions">' +

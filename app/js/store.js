@@ -72,11 +72,15 @@
     ];
   }
 
+  var _cfgCache=null, _cfgRaw=null;
   function getConfig() {
     try {
       var raw = localStorage.getItem(CONFIG_KEY);
+      if (raw === _cfgRaw && _cfgCache) return JSON.parse(JSON.stringify(_cfgCache));
       var c = raw ? JSON.parse(raw) : {};
-      return Object.assign(defaultConfig(), c, { google: Object.assign(defaultConfig().google, (c && c.google) || {}) });
+      var out = Object.assign(defaultConfig(), c, { google: Object.assign(defaultConfig().google, (c && c.google) || {}) });
+      _cfgRaw = raw; _cfgCache = out;
+      return JSON.parse(JSON.stringify(out));
     } catch (e) {
       return defaultConfig();
     }
@@ -86,6 +90,7 @@
     var c = Object.assign(getConfig(), partial);
     if (c.google) c.google = Object.assign(defaultConfig().google, c.google);
     localStorage.setItem(CONFIG_KEY, JSON.stringify(c));
+    _cfgRaw = null; _cfgCache = null;
     return c;
   }
 
@@ -547,24 +552,29 @@
         }
         return keys;
       };
-      var byKey = {};
-      var survivor = {};   /* id -> contacto superviviente */
-      var mergeInto = {};  /* id duplicado -> id superviviente */
-      for (var i = 0; i < contacts.length; i++) {
-        var c = contacts[i];
-        var keys = keysOf(c);
-        if (!keys.length) { survivor[c.id] = c; continue; }
-        var owner = null;
-        for (var k = 0; k < keys.length && !owner; k++) {
-          if (byKey[keys[k]]) owner = byKey[keys[k]];
-        }
-        if (owner) {
-          mergeInto[c.id] = owner.id;
-        } else {
-          for (var k2 = 0; k2 < keys.length; k2++) byKey[keys[k2]] = c;
-          survivor[c.id] = c;
-        }
-      }
+      // union-find para cierre transitivo: A-x, B-x,y, C-y => {A,B,C} mismo grupo
+      var parent = {};
+      contacts.forEach(function(c){ parent[c.id]=c.id; });
+      function find(x){ while(parent[x]!==x){ parent[x]=parent[parent[x]]; x=parent[x]; } return x; }
+      function union(a,b){ var ra=find(a), rb=find(b); if(ra!==rb) parent[rb]=ra; }
+      var keyToIds = {};
+      contacts.forEach(function(c){
+        keysOf(c).forEach(function(k){ (keyToIds[k]=keyToIds[k]||[]).push(c.id); });
+      });
+      Object.keys(keyToIds).forEach(function(k){
+        var ids=keyToIds[k]; for(var i=1;i<ids.length;i++) union(ids[0], ids[i]);
+      });
+      var groups={};
+      contacts.forEach(function(c){ var r=find(c.id); (groups[r]=groups[r]||[]).push(c); });
+      var survivor = {};
+      var mergeInto = {};
+      Object.keys(groups).forEach(function(r){
+        var g=groups[r];
+        if(g.length===1){ survivor[g[0].id]=g[0]; return; }
+        g.sort(function(a,b){ return String(a.id).localeCompare(String(b.id)); });
+        var s=g[0]; survivor[s.id]=s;
+        for(var i=1;i<g.length;i++) mergeInto[g[i].id]=s.id;
+      });
 
       /* Fusionar campos vacíos del superviviente con cada duplicado */
       var mergedSurvivors = {};
