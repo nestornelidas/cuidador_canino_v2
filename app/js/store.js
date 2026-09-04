@@ -352,6 +352,10 @@
       if (!payload || payload.app !== 'cuidador_canino' || !payload.data || typeof payload.data !== 'object') {
         throw new Error('El archivo no tiene un formato de copia de seguridad de Cuidador Canino.');
       }
+      var BACKUP_VERSION = 2;
+      if (payload.version && Number(payload.version) > BACKUP_VERSION) {
+        throw new Error('Esta copia es de una versión más nueva (v' + payload.version + '). Actualiza la app antes de importarla para no perder datos.');
+      }
       opts = opts || {};
       var data = payload.data;
       var usesCipher = !!(payload.cifrado && payload.cifrado.salt);

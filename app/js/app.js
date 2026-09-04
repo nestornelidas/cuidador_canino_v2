@@ -24,32 +24,36 @@
   }
 
   var rendering = false;
+  var pendingRender = false;
   async function render() {
-    if (rendering) return;
+    if (rendering) { pendingRender = true; return; }
     rendering = true;
-    var container = document.getElementById('view');
-    var { name, params } = parseHash();
-    var route = ROUTES[name];
-    if (!route) { route = ROUTES.dashboard; name = 'dashboard'; }
+    do {
+      pendingRender = false;
+      var container = document.getElementById('view');
+      var { name, params } = parseHash();
+      var route = ROUTES[name];
+      if (!route) { route = ROUTES.dashboard; name = 'dashboard'; }
 
-    document.querySelectorAll('#mainnav .nav-btn').forEach(function (b) {
-      b.classList.toggle('active', b.dataset.view === name);
-    });
-    document.getElementById('navToggle').classList.remove('open');
-    document.getElementById('mainnav').classList.remove('open');
+      document.querySelectorAll('#mainnav .nav-btn').forEach(function (b) {
+        b.classList.toggle('active', b.dataset.view === name);
+      });
+      document.getElementById('navToggle').classList.remove('open');
+      document.getElementById('mainnav').classList.remove('open');
 
-    document.title = (name === 'dashboard' ? '' : route.title + ' · ') + 'Cuidador Canino';
+      document.title = (name === 'dashboard' ? '' : route.title + ' · ') + 'Cuidador Canino';
 
-    try {
-      container.innerHTML = '<div class="view-loading">' + UI.icon('paw') + ' Cargando…</div>';
-      await route.view.render(container, params, ctxOf(function (path) { App.go(path); }));
-    } catch (err) {
-      console.error(err);
-      container.innerHTML = '<div class="view-error"><h1>' + UI.icon('alert') + ' Se ha producido un error</h1>' +
-        '<p>' + UI.esc(String(err && err.message ? err.message : err)) + '</p>' +
-        '<button class="btn" onclick="location.hash=\'#/dashboard\'">Volver al inicio</button></div>';
-    }
-    container.scrollTop = 0;
+      try {
+        container.innerHTML = '<div class="view-loading">' + UI.icon('paw') + ' Cargando…</div>';
+        await route.view.render(container, params, ctxOf(function (path) { App.go(path); }));
+      } catch (err) {
+        console.error(err);
+        container.innerHTML = '<div class="view-error"><h1>' + UI.icon('alert') + ' Se ha producido un error</h1>' +
+          '<p>' + UI.esc(String(err && err.message ? err.message : err)) + '</p>' +
+          '<button class="btn" onclick="location.hash=\'#/dashboard\'">Volver al inicio</button></div>';
+      }
+      container.scrollTop = 0;
+    } while (pendingRender);
     rendering = false;
   }
 
