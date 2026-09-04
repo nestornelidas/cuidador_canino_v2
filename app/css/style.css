@@ -866,9 +866,9 @@ th.sort-desc::after { content: ' ▼'; font-size: 0.7em; }
 .behav-item-row [data-item-texto] { flex: 1; }
 .behav-item-row [data-item-grupo] { width: 200px; flex-shrink: 0; }
 @media (max-width: 600px){
-  .behav-item-row{ flex-wrap: wrap; gap:6px; }
-  .behav-item-row [data-item-texto]{ flex:1 1 100%; min-width:0; }
-  .behav-item-row [data-item-grupo]{ width:100%; flex:1 1 100%; }
+  .behav-item-row{ flex-wrap: nowrap; gap:6px; }
+  .behav-item-row [data-item-texto]{ flex:1; min-width:0; }
+  .behav-group-head{ gap:6px; }
 }
 .behav-move { display: flex; flex-direction: column; gap: 2px; flex-shrink: 0; }
 .behav-move .icon-btn { width: 24px; height: 20px; padding: 0; }
