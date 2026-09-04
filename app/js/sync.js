@@ -190,8 +190,11 @@
     });
   }
 
+  var _started = false;
   function startAutoSync() {
     hookStore();
+    if (_started) return;
+    _started = true;
     window.addEventListener('online', function () { pushQueue(); pullAll(); });
     document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'visible' && isOnline()) pushQueue(); });
     // intento periódico

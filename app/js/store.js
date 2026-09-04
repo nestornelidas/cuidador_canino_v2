@@ -620,13 +620,15 @@
       }
       return Object.keys(mergeInto).length;
     },
-    /* Borrado físico en cascada: elimina perro y todos sus servicios */
+    /* Borrado físico en cascada: elimina perro y todos sus servicios.
+       Usa Store.deleteService/deleteDogPhysical (no DB.del directo) para que
+       Sync.hookStore encole los borrados y se propaguen a la nube. */
     async cascadeDeleteDog(dogId) {
       var services = (await Store.listServicesByDog(dogId)) || [];
       for (var i = 0; i < services.length; i++) {
-        await DB.del('services', services[i].id);
+        await Store.deleteService(services[i].id);
       }
-      await DB.del('dogs', dogId);
+      await Store.deleteDogPhysical(dogId);
     },
 
     /* Elimina los contactos de un perro que no use ningún otro perro */

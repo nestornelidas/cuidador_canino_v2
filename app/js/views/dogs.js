@@ -75,7 +75,7 @@
         if(sortKey==='ultimo') return cmpText(a.last?a.last.desde:'', b.last?b.last.desde:'');
         if(sortKey==='edad'){
           var ea=C.ageParts(a.d.fecha_nacimiento, a.d.fecha_deceso||null); var eb=C.ageParts(b.d.fecha_nacimiento, b.d.fecha_deceso||null);
-          var ma=(ea?ea.y*12+ea.m: -1), mb=(eb?eb.y*12+eb.m: -1);
+          var ma=(ea?ea.years*12+ea.months: -1), mb=(eb?eb.years*12+eb.months: -1);
           if(ma===mb) return 0;
           return (ma>mb? -1:1) * (sortDir==='asc'? -1:1);
         }

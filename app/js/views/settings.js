@@ -623,6 +623,16 @@
       var ok=await UI.confirmDialog({title:'Cambiar PIN', message:'Se borrará el PIN actual y al recargar se te pedirá uno nuevo de 6 dígitos. ¿Continuar?', confirmText:'Sí, borrar PIN'});
       if(!ok) return;
       try{ localStorage.removeItem(root.ExtraGate.LS_HASH); }catch(e){}
+      // El PIN vive también en Supabase (app_pin, compartido entre dispositivos):
+      // si no se borra allí, al recargar pediría el PIN viejo igualmente.
+      try{
+        if(root.Supa && root.Supa.isConfigured() && root.Supa.getClient()){
+          var c=root.Supa.getClient();
+          var sess=await root.Supa.getSession();
+          if(sess){ await c.from('app_pin').delete().eq('id',1); }
+          else { UI.toast('PIN local borrado. Sin sesión de nube: si otro dispositivo fijó el PIN compartido, seguirá pidiéndolo.','warning'); }
+        }
+      }catch(e){}
       UI.toast('PIN borrado. Recarga la página para establecer uno nuevo.','success');
     });
 
