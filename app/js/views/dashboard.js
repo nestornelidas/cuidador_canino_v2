@@ -1,4 +1,4 @@
-/* Cuidador Canino - Vista Dashboard */
+/* Cuidador Canino - Vista Inicio */
 (function (root) {
   'use strict';
   var C = root.Calc, UI = root.UI, Store = root.Store;
@@ -51,7 +51,7 @@
     }
 
     var html = '';
-    html += '<div class="view-head"><h1>Dashboard</h1><p class="view-sub">Hoy, ' + C.fmtDMY(today) + '</p>' +
+    html += '<div class="view-head"><h1>Inicio</h1><p class="view-sub">Hoy, ' + C.fmtDMY(today) + '</p>' +
       '<div class="view-actions">' +
       '<button class="btn btn-primary" id="dashNewService">' + UI.icon('plus') + ' Nuevo servicio</button>' +
       '<button class="btn btn-primary" id="dashNewEvent">' + UI.icon('plus') + ' Nuevo evento</button>' +
@@ -132,5 +132,5 @@
   }
 
   root.Views = root.Views || {};
-  root.Views.dashboard = { title: 'Dashboard', render: render };
+  root.Views.dashboard = { title: 'Inicio', render: render };
 })(typeof window !== 'undefined' ? window : globalThis);

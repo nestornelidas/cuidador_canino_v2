@@ -145,25 +145,24 @@
 
     function renderBehaviors() {
       ed.innerHTML = grupos.map(function (g, gi) {
-        return '<div class="behav-group" data-gi="' + gi + '">' +
+        var collapsed = g._collapsed !== false;
+        return '<div class="behav-group' + (collapsed ? ' collapsed' : '') + '" data-gi="' + gi + '">' +
           '<div class="behav-group-head">' +
+          '<button type="button" class="icon-btn" data-toggle-group title="Expandir/colapsar">' + (collapsed ? UI.icon('chevron_down') : UI.icon('chevron_up')) + '</button>' +
           '<input class="input" data-grupo-titulo value="' + UI.esc(g.titulo || '') + '">' +
           '<button type="button" class="icon-btn btn-danger-soft" data-del-grupo title="Borrar categoría">' + UI.icon('x') + '</button>' +
           '</div>' +
-          '<div class="behav-items">' + (g.items || []).map(function (item, ii) {
+          '<div class="behav-items" ' + (collapsed ? 'hidden' : '') + '>' + (g.items || []).map(function (item, ii) {
             return '<div class="behav-item-row" data-ii="' + ii + '">' +
               '<div class="behav-move">' +
               '<button type="button" class="icon-btn" data-move-up title="Subir">' + UI.icon('chevron_up') + '</button>' +
               '<button type="button" class="icon-btn" data-move-down title="Bajar">' + UI.icon('chevron_down') + '</button>' +
               '</div>' +
               '<input class="input" data-item-texto value="' + UI.esc(item.t) + '">' +
-              '<select class="input" data-item-grupo>' + grupos.map(function (og, oi) {
-                return '<option value="' + oi + '"' + (oi === gi ? ' selected' : '') + '>' + UI.esc(og.titulo || '') + '</option>';
-              }).join('') + '</select>' +
               '<button type="button" class="icon-btn btn-danger-soft" data-del-item title="Borrar comportamiento">' + UI.icon('x') + '</button>' +
               '</div>';
           }).join('') + '</div>' +
-          '<button type="button" class="btn btn-soft" data-add-item>' + UI.icon('plus') + ' Añadir comportamiento</button>' +
+          '<button type="button" class="btn btn-soft" data-add-item ' + (collapsed ? 'hidden' : '') + '>' + UI.icon('plus') + ' Añadir comportamiento</button>' +
           '</div>';
       }).join('');
     }
@@ -177,21 +176,16 @@
         grupos[+t.closest('.behav-group').dataset.gi].items[+t.closest('.behav-item-row').dataset.ii].t = t.value;
       }
     });
-    ed.addEventListener('change', function (e) {
-      var t = e.target;
-      if (!t.hasAttribute('data-item-grupo')) return;
-      var gi = +t.closest('.behav-group').dataset.gi;
-      var ii = +t.closest('.behav-item-row').dataset.ii;
-      var to = +t.value;
-      if (to === gi) return;
-      var item = grupos[gi].items[ii];
-      grupos[gi].items.splice(ii, 1);
-      grupos[to].items.push(item);
-      renderBehaviors();
-    });
+    // selector de grupo eliminado: cada comportamiento permanece en su categoría
     ed.addEventListener('click', function (e) {
       var b = e.target.closest('button');
       if (!b) return;
+      if (b.hasAttribute('data-toggle-group')) {
+        var gi = +b.closest('.behav-group').dataset.gi;
+        grupos[gi]._collapsed = !grupos[gi]._collapsed;
+        renderBehaviors();
+        return;
+      }
       if (b.hasAttribute('data-add-item')) {
         var gi = +b.closest('.behav-group').dataset.gi;
         grupos[gi].items.push({ t: '' });

@@ -4,7 +4,7 @@
   var C = root.Calc, UI = root.UI, Store = root.Store;
 
   var ROUTES = {
-    dashboard: { view: root.Views.dashboard, title: 'Dashboard' },
+    dashboard: { view: root.Views.dashboard, title: 'Inicio' },
     calendario: { view: root.Views.calendario, title: 'Calendario' },
     perros: { view: root.Views.perros, title: 'Perros' },
     servicios: { view: root.Views.servicios, title: 'Servicios' },
