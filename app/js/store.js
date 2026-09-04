@@ -407,6 +407,7 @@
       await Store.cleanOrphanContacts();
       if (payload.config && typeof payload.config === 'object') {
         localStorage.setItem(CONFIG_KEY, JSON.stringify(Object.assign(defaultConfig(), payload.config)));
+        _cfgRaw = null; _cfgCache = null; /* invalida el memo de getConfig */
       }
       return { contacts: out.contacts.length, dogs: out.dogs.length, services: out.services.length, templates: out.templates.length, events: out.events.length };
     },

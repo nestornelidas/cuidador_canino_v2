@@ -2,7 +2,7 @@
    Al publicar cambios en js/css, sube VERSION para forzar la actualización del caché. */
 'use strict';
 
-var VERSION = 'cuidador-canino-v17';
+var VERSION = 'cuidador-canino-v18';
 var SHELL_CACHE = VERSION;
 
 var PRECACHE = [

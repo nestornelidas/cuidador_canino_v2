@@ -48,7 +48,7 @@
       '</div>';
 
     var errEl = container.querySelector('#suErr');
-    function showErr(m) { errEl.textContent = m; errEl.hidden = false; }
+    function showErr(m) { errEl.textContent = m; errEl.hidden = false; errEl.style.color = ''; }
     function checkRules(pw) { return pw.length >= 8 && /[A-ZÁÉÍÓÚÜÑ]/.test(pw) && /\d/.test(pw); }
 
     // Registro de cuentas nuevas desactivado en Supabase: no se muestra formulario

@@ -102,16 +102,16 @@
     return dec.decode(pt);
   }
 
-  /* Cifra los campos sensibles de un registro según su tipo y calcula el hash de búsqueda
-     del contacto (basado en el nombre). Los campos no sensibles se dejan igual. */
+  /* Cifra los campos sensibles de un registro según su tipo.
+     Los campos no sensibles se dejan igual. */
   async function encryptRecord(kind, obj, key) {
     var k = key || currentKey;
     var out = Object.assign({}, obj);
-    if (!k) return out;
     /* hash_busqueda (legado): ya no se genera — era un hash sin salt del nombre
-       que viajaba en claro a la nube y a los backups. Se elimina si viene en
-       registros antiguos. hashField se conserva como utilidad/test. */
+       que viajaba en claro a la nube y a los backups. Se elimina siempre (con
+       o sin clave), si viene en registros antiguos. hashField se conserva. */
     if ('hash_busqueda' in out) delete out.hash_busqueda;
+    if (!k) return out;
     var fields = fieldsFor(kind);
     await Promise.all(fields.map(async function (f) {
       if (out[f] != null && out[f] !== '' && !isEnc(out[f])) {
