@@ -146,6 +146,25 @@
     return n;
   }
 
+  /* Borrado total: elimina todas las filas del usuario en la nube y vacía la
+     cola pendiente (si no, los upserts encolados resucitarían datos). Se usa
+     tras Store.clearAllExceptConfig() en "Borrar todos los datos". */
+  async function wipeRemote() {
+    var c = root.Supa && root.Supa.getClient ? root.Supa.getClient() : null;
+    if (!c || !root.Supa.isConfigured()) return { ok: false, reason: 'no-config' };
+    if (!isOnline()) return { ok: false, reason: 'offline' };
+    var sess = await root.Supa.getSession();
+    if (!sess || !sess.user) return { ok: false, reason: 'no-session' };
+    var uid = sess.user.id;
+    for (var t = 0; t < TABLES.length; t++) {
+      var r = await c.from(TABLES[t]).delete().eq('user_id', uid);
+      if (r.error) throw r.error;
+    }
+    saveQueue([]);
+    try { localStorage.removeItem(LS_LAST_PULL); } catch (e) {}
+    return { ok: true };
+  }
+
   function hookStore() {
     if (!root.Store || root.Store._syncHooked) return;
     root.Store._syncHooked = true;
@@ -208,6 +227,7 @@
     pushQueue: pushQueue,
     pullAll: pullAll,
     pushAllLocal: pushAllLocal,
+    wipeRemote: wipeRemote,
     hookStore: hookStore,
     startAutoSync: startAutoSync,
     LS_QUEUE: LS_QUEUE,

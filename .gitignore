@@ -1,0 +1,6 @@
+# Cuidador Canino - no publicar copias de seguridad reales ni generados locales
+app/backup/
+supabase-config.json
+*.log
+.DS_Store
+Thumbs.db

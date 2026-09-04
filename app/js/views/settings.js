@@ -650,17 +650,28 @@
       App.refresh();
     });
 
-    /* Borrar todo */
+    /* Borrar todo (local + nube para que no resuciten al sincronizar) */
     document.getElementById('btnWipe').addEventListener('click', async function () {
       var ok = await UI.confirmTypeDialog({
         title: 'Borrar todos los datos',
-        message: 'Se eliminarán todos los perros, servicios, contactos y plantillas. Se conserva la configuración (costes base y logo).',
+        message: 'Se eliminarán todos los perros, servicios, contactos y plantillas, también en la nube. Se conserva la configuración (costes base y logo).',
         word: 'borrar todo',
         confirmText: 'Borrar todos los datos'
       });
       if (!ok) return;
       await Store.clearAllExceptConfig();
-      UI.toast('Base de datos vaciada (se mantiene la configuración)', 'success');
+      var msg = 'Base de datos vaciada (se mantiene la configuración)';
+      try {
+        if (root.Sync && root.Sync.wipeRemote) {
+          var wr = await root.Sync.wipeRemote();
+          if (wr.ok) msg += ' en este dispositivo y en la nube';
+          else if (wr.reason === 'no-config') msg += '. Sin nube configurada: solo este dispositivo';
+          else msg += '. AVISO: no se pudo borrar la nube (sin conexión o sin sesión); los datos volverán al sincronizar. Repite el borrado con conexión';
+        }
+      } catch (e) {
+        msg += '. AVISO: no se pudo borrar la nube (' + (e && e.message ? e.message : 'error') + '); los datos volverán al sincronizar';
+      }
+      UI.toast(msg, 'success');
       App.refresh();
     });
   }
