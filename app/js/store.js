@@ -266,48 +266,6 @@
     },
     async deleteEvent(id) { await DB.del('events', id); },
 
-    /* ---- Datos de ejemplo (planificación de diciembre 2026) ---- */
-    async seedSampleData() {
-      await Store.ensureDefaultTemplates();
-      var c1 = await Store.saveContact({ nombre: 'Ana Martínez', telefono: '600111222', telegram: '@anamtz', whatsapp: '', otros: '', referido: 'Wallapop' });
-      var c2 = await Store.saveContact({ nombre: 'Carlos Gómez', telefono: '600333444', telegram: '', whatsapp: '+34 600 333 444', otros: '', referido: 'Boca a boca', referido_por: 'Laura' });
-      var c3 = await Store.saveContact({ nombre: 'Lucía Fernández', telefono: '600555666', telegram: '@luciaf', whatsapp: '', otros: '', referido: 'Holidog' });
-      var c4 = await Store.saveContact({ nombre: 'Pedro Sánchez', telefono: '600777888', telegram: '', whatsapp: '', otros: 'veterinario', referido: 'Captación directa' });
-      var c5 = await Store.saveContact({ nombre: 'María López', telefono: '600999000', telegram: '', whatsapp: '+34 600 999 000', otros: '', referido: 'TopAyuda' });
-
-      var d1 = await Store.saveDogWithContacts({ nombre: 'Loki', raza: 'Beagle', tamano: 'mediano', sexo: 'macho', castrado: true, observaciones: 'Alergia leve al pollo', comportamientos: ['Tirar de la correa.', 'Saltar encima.'], notas: 'Tirar de la correa.\nSaltar encima.', fecha_nacimiento: '2021-03-15' }, [c1]);
-      var d2 = await Store.saveDogWithContacts({ nombre: 'Nala', raza: 'Golden Retriever', tamano: 'grande', sexo: 'hembra', castrado: true, observaciones: 'Miedo a los ruidos fuertes', comportamientos: ['Ladrar excesivamente.', 'Reaccionar exageradamente ante ruidos.'], notas: 'Ladrar excesivamente.\nReaccionar exageradamente ante ruidos.', fecha_nacimiento: '2019-07-22' }, [c2]);
-      var d3 = await Store.saveDogWithContacts({ nombre: 'Toby', raza: 'Yorkshire Terrier', tamano: 'pequeño', sexo: 'macho', castrado: false, comportamientos: ['Mordisquear manos, ropa o partes del cuerpo.', 'Pararse constantemente.'], notas: 'Mordisquear manos, ropa o partes del cuerpo.\nPararse constantemente.', fecha_nacimiento: '2022-11-05' }, [c3]);
-      var d4 = await Store.saveDogWithContacts({ nombre: 'Kira', raza: 'Pastor Alemán', tamano: 'grande', sexo: 'hembra', castrado: true, observaciones: 'Protectora con su comida', comportamientos: ['Proteger juguetes, comida o espacios'], notas: 'Proteger juguetes, comida o espacios', fecha_nacimiento: '2020-01-10' }, [c4, c1, c5]);
-      var d5 = await Store.saveDogWithContacts({ nombre: 'Bruno', raza: 'Gran Danés', tamano: 'gigante', sexo: 'macho', castrado: true, fecha_nacimiento: '2018-04-02' }, [c2, c5]);
-
-      async function svc(spec) {
-        var s = Object.assign({
-          coste_total_manual: false, min_desplazamiento: 0, min_paseo: 0,
-          paga_senal: 0, plus: 0, estado: 'pendiente', notas: ''
-        }, spec);
-        s.coste_total = Calc.calcServiceTotal(s);
-        return Store.saveService(s);
-      }
-
-      await svc({ tipo: 'hospedaje', desde: '2026-12-01', hasta: '2026-12-04', dog_ids: [d1.id], coste_base: 20, paga_senal: 20 });
-      await svc({ tipo: 'hospedaje', desde: '2026-12-01', hasta: '2026-12-07', dog_ids: [d2.id, d3.id], coste_base: 20 });
-      await svc({ tipo: 'paseo', desde: '2026-12-01', hasta: '2026-12-05', dog_ids: [d1.id], coste_base: 12, min_desplazamiento: 30, min_paseo: 120, paga_senal: 10 });
-      await svc({ tipo: 'hospedaje', desde: '2026-12-08', hasta: '2026-12-22', dog_ids: [d4.id], coste_base: 20, paga_senal: 60 });
-      await svc({ tipo: 'paseo', desde: '2026-12-10', hasta: '2026-12-11', dog_ids: [d2.id], coste_base: 12, min_desplazamiento: 20, min_paseo: 90 });
-      await svc({ tipo: 'hospedaje', desde: '2026-12-23', hasta: '2026-12-29', dog_ids: [d5.id], coste_base: 20, paga_senal: 20 });
-      await svc({ tipo: 'paseo', desde: '2026-12-26', hasta: '2026-12-26', dog_ids: [d3.id, d4.id], coste_base: 12, min_desplazamiento: 25, min_paseo: 60 });
-      await svc({ tipo: 'hospedaje', desde: '2026-12-30', hasta: '2027-01-03', dog_ids: [d1.id, d5.id], coste_base: 20 });
-      await svc({ tipo: 'paseo', desde: '2026-12-02', hasta: '2026-12-03', dog_ids: [d4.id], coste_base: 12, min_desplazamiento: 15, min_paseo: 45 });
-      await svc({ tipo: 'hospedaje', desde: '2026-12-15', hasta: '2026-12-15', dog_ids: [d3.id], coste_base: 20 });
-      await svc({ tipo: 'hospedaje', desde: '2026-12-05', hasta: '2026-12-06', dog_ids: [d2.id], coste_base: 20, estado: 'cancelado' });
-
-      await Store.saveEvent({ fecha: '2026-12-07', todo_dia: true, hora: null, descripcion: 'Primera visita para conocer a Bruno' });
-      await Store.saveEvent({ fecha: '2026-12-14', todo_dia: false, hora: '10:30', descripcion: 'Recogida de llaves de Nala' });
-
-      return { contacts: 5, dogs: 5, services: 11, events: 2 };
-    },
-
     /* ---- Contactos comunes a todos los perros de un servicio ---- */
     async commonContactsForDogs(dogIds) {
       if (!dogIds || !dogIds.length) return [];

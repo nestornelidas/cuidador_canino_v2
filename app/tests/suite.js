@@ -1170,13 +1170,18 @@
       await Views.servicios.render(host, ['nuevo'], ctx);
       ok('alarma: sin datos el enlace está deshabilitado', host.querySelector('#alarmaLink').getAttribute('href') === null);
 
-      log('== Fase 10: datos de ejemplo (botón de Configuración) ==');
+      log('== Fase 10: datos de ejemplo (semilla local de pruebas) ==');
       await Store.clearAllExceptConfig();
       await Store.ensureDefaultTemplates();
-      var seedCounts = await Store.seedSampleData();
-      ok('seed: 5 contactos', seedCounts.contacts === 5, seedCounts.contacts);
-      ok('seed: 5 perros', seedCounts.dogs === 5, seedCounts.dogs);
-      ok('seed: 11 servicios', seedCounts.services === 11, seedCounts.services);
+      var seed10 = await seedPlanner();
+      // Loki con observaciones/comportamientos como en el antiguo seed de ejemplo
+      await Store.saveDog(Object.assign({}, seed10.d.d1, { observaciones: 'Alergia leve al pollo', comportamientos: ['Tirar de la correa.', 'Saltar encima.'], notas: 'Tirar de la correa.\nSaltar encima.' }));
+      var seed10c = await Store.listContacts();
+      var seed10d = await Store.listDogs({ includeInactive: true });
+      var seed10s = await Store.listServices();
+      ok('seed: 5 contactos', seed10c.length === 5, seed10c.length);
+      ok('seed: 5 perros', seed10d.length === 5, seed10d.length);
+      ok('seed: 11 servicios', seed10s.length === 11, seed10s.length);
       var seedDogs = await Store.listDogs({ includeInactive: true });
       var seedSvcs = await Store.listServices();
       var seedByName = {};
@@ -1224,7 +1229,7 @@
       document.getElementById('cfgOcultarRedFlags').click();
       ok('settings: al marcar RED FLAG guarda config', Store.getConfig().ocultarRedFlags === true);
       Store.setConfig({ ocultarRedFlags: false });
-      ok('seed: botón de Configuración presente', host.querySelector('#btnSeed') !== null);
+      ok('settings: sin botón de datos de ejemplo', host.querySelector('#btnSeed') === null);
       await new Promise(function (r) { setTimeout(r, 50); });
       var dbSizeEl = host.querySelector('#dbSizeVal');
       ok('settings: campo de tamaño de BBDD presente', dbSizeEl !== null);
@@ -1481,8 +1486,8 @@
       ok('crypto: telegram almacenado cifrado', typeof rawC.telegram === 'string' && rawC.telegram.slice(0, 4) === 'enc:');
       ok('crypto: otros (texto libre) cifrado', typeof rawC.otros === 'string' && rawC.otros.slice(0, 4) === 'enc:');
       ok('crypto: referido_por (dato personal de tercero) cifrado', typeof rawC.referido_por === 'string' && rawC.referido_por.slice(0, 4) === 'enc:');
-      ok('crypto: hash_busqueda presente (hex 64)', typeof rawC.hash_busqueda === 'string' && /^[0-9a-f]{64}$/.test(rawC.hash_busqueda));
-      ok('crypto: hash_busqueda = SHA256(nombre minúsculas)', (await Crypto.hashField('Pepa Gómez')) === rawC.hash_busqueda, rawC.hash_busqueda);
+      ok('crypto: sin hash_busqueda (ya no se genera)', rawC.hash_busqueda === undefined, String(rawC.hash_busqueda));
+      ok('crypto: hashField sigue disponible como utilidad', (await Crypto.hashField('Pepa Gómez')) === (await Crypto.hashField('pepa góMez')));
       ok('crypto: referido (canal no personal) queda en claro', rawC.referido === 'Wallapop');
 
       var gotC = await Store.listContacts();

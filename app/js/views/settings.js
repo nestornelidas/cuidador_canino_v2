@@ -94,10 +94,9 @@
       '<button class="btn" id="btnExport">' + UI.icon('download') + ' Exportar BBDD (JSON)</button>' +
       '<button class="btn" id="btnImport">' + UI.icon('upload') + ' Importar BBDD (JSON)</button>' +
       '<input type="file" id="importFile" accept=".json,application/json" hidden>' +
-      '<button class="btn" id="btnSeed">' + UI.icon('sparkles') + ' Cargar datos de ejemplo</button>' +
       '<button class="btn btn-danger" id="btnWipe">' + UI.icon('trash') + ' Borrar todos los datos</button>' +
       '</div>' +
-      '<p class="hint">La importación sobrescribe toda la base de datos. "Cargar datos de ejemplo" crea 5 perros, 5 contactos y 11 servicios de ejemplo (diciembre 2026) para probar la aplicación.</p></section>';
+      '<p class="hint">La importación sobrescribe toda la base de datos (perros, servicios, contactos, plantillas y configuración).</p></section>';
 
     /* --- Seguridad (cifrado) --- */
     html += '<section class="card"><h2>' + UI.icon('lock') + ' Seguridad</h2>';
@@ -110,7 +109,7 @@
 
     /* --- Comportamientos --- */
     html += '<section class="card"><h2>' + UI.icon('dog') + ' Comportamientos</h2>';
-    html += '<p class="hint">Lista de comportamientos disponibles en el formulario de cada perro. Puedes añadir o borrar comportamientos y categorías, cambiar un comportamiento de categoría y corregir los textos. Pulsa "Guardar comportamientos" para aplicar los cambios.</p>';
+    html += '<p class="hint">Lista de comportamientos disponibles en el formulario de cada perro. Las categorías aparecen minimizadas: pulsa la flecha (▼/▲) para mostrar u ocultar su listado. Puedes añadir o borrar comportamientos y categorías y corregir los textos. Pulsa "Guardar comportamientos" para aplicar los cambios.</p>';
     html += '<div id="behavEditor"></div>';
     html += '<div class="form-actions">' +
       '<button class="btn btn-soft" id="behavAddGroup">' + UI.icon('plus') + ' Añadir categoría</button>' +
@@ -136,7 +135,10 @@
         return {
           id: g.id,
           titulo: g.titulo || '',
-          items: (g.items || []).map(function (t) { return typeof t === 'object' ? t : { t: t, orig: t }; })
+          items: (g.items || []).map(function (t) { return typeof t === 'object' ? t : { t: t, orig: t }; }),
+          /* Minimizada por defecto; booleano explícito para que el primer
+             toque en la flecha responda (undefined se quedaba colapsado). */
+          _collapsed: g._collapsed === false ? false : true
         };
       });
     }
@@ -226,7 +228,7 @@
     });
 
     document.getElementById('behavAddGroup').addEventListener('click', function () {
-      grupos.push({ id: Store.uid(), titulo: 'Nueva categoría', items: [] });
+      grupos.push({ id: Store.uid(), titulo: 'Nueva categoría', items: [], _collapsed: false });
       renderBehaviors();
     });
     document.getElementById('behavReset').addEventListener('click', function () {
@@ -642,20 +644,6 @@
         }
       }catch(e){}
       UI.toast('PIN borrado. Recarga la página para establecer uno nuevo.','success');
-    });
-
-    /* Cargar datos de ejemplo */
-    document.getElementById('btnSeed').addEventListener('click', async function () {
-      var ok = await UI.confirmTypeDialog({
-        title: 'Cargar datos de ejemplo',
-        message: 'Se crearán 5 perros, 5 contactos y 11 servicios de ejemplo (planificación de diciembre 2026) para probar la aplicación. Se añaden a los datos actuales si los hay.',
-        word: 'cargar',
-        confirmText: 'Cargar datos de ejemplo'
-      });
-      if (!ok) return;
-      var counts = await Store.seedSampleData();
-      UI.toast(counts.dogs + ' perros, ' + counts.contacts + ' contactos y ' + counts.services + ' servicios de ejemplo creados.', 'success');
-      App.refresh();
     });
 
     /* Borrar todo (local + nube para que no resuciten al sincronizar) */
