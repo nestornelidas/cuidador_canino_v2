@@ -6,8 +6,22 @@
   var _client = null;
 
   var _envCache=null;
-  function getUrl() { try { var v=localStorage.getItem(LS_URL); if(v) return v; if(_envCache && _envCache.url) return _envCache.url; try{ var r=new XMLHttpRequest(); r.open('GET','supabase-config.json',false); r.send(null); if(r.status===200){ _envCache=JSON.parse(r.responseText); if(_envCache.url) return _envCache.url; } }catch(e){} return ''; } catch (e) { return ''; } }
-  function getKey() { try { var v=localStorage.getItem(LS_KEY); if(v) return v; if(_envCache && _envCache.key) return _envCache.key; try{ var r=new XMLHttpRequest(); r.open('GET','supabase-config.json',false); r.send(null); if(r.status===200){ _envCache=JSON.parse(r.responseText); if(_envCache.key) return _envCache.key; } }catch(e){} return ''; } catch (e) { return ''; } }
+  var _envPromise=null;
+  function loadEnv(){
+    if(_envPromise) return _envPromise;
+    _envPromise = fetch('supabase-config.json', {cache:'no-store'}).then(function(r){
+      if(!r.ok) throw new Error('no config');
+      return r.json();
+    }).then(function(j){
+      _envCache = j || {};
+      return _envCache;
+    }).catch(function(){ _envCache = _envCache || {}; return _envCache; });
+    return _envPromise;
+  }
+  // precarga no bloqueante al cargar el script
+  try{ loadEnv(); }catch(e){}
+  function getUrl() { try { var v=localStorage.getItem(LS_URL); if(v) return v; if(_envCache && _envCache.url) return _envCache.url; return ''; } catch (e) { return ''; } }
+  function getKey() { try { var v=localStorage.getItem(LS_KEY); if(v) return v; if(_envCache && _envCache.key) return _envCache.key; return ''; } catch (e) { return ''; } }
 
   function isConfigured() {
     var u = getUrl(), k = getKey();
@@ -52,6 +66,8 @@
     return r && r.data ? r.data.session : null;
   }
 
+  function ready(){ return loadEnv().then(function(){ return isConfigured(); }); }
+
   root.Supa = {
     LS_URL: LS_URL,
     LS_KEY: LS_KEY,
@@ -62,6 +78,8 @@
     setConfig: setConfig,
     clearConfig: clearConfig,
     getUrl: getUrl,
-    getKey: getKey
+    getKey: getKey,
+    ready: ready,
+    loadEnv: loadEnv
   };
 })(typeof window !== 'undefined' ? window : globalThis);

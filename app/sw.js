@@ -2,7 +2,7 @@
    Al publicar cambios en js/css, sube VERSION para forzar la actualización del caché. */
 'use strict';
 
-var VERSION = 'cuidador-canino-v6';
+var VERSION = 'cuidador-canino-v7';
 var SHELL_CACHE = VERSION;
 
 var PRECACHE = [
@@ -16,6 +16,10 @@ var PRECACHE = [
   'js/store.js',
   'js/ui.js',
   'js/gate.js',
+  'js/supabaseClient.js',
+  'js/sync.js',
+  'js/auth_supabase.js',
+  'js/extraGate.js',
   'js/dogForm.js',
   'js/views/dashboard.js',
   'js/views/calendar.js',
@@ -27,13 +31,20 @@ var PRECACHE = [
   'js/app.js',
   'manifest.webmanifest',
   'image/app-icon-192.png',
-  'image/app-icon-512.png'
+  'image/app-icon-512.png',
+  'image/app-icon-180.png',
+  'image/app-icon.svg'
 ];
 
 self.addEventListener('install', function (e) {
   e.waitUntil(
     caches.open(SHELL_CACHE).then(function (cache) {
-      return cache.addAll(PRECACHE);
+      return cache.addAll(PRECACHE).catch(function (err) {
+        // tolerante: si un recurso falla (p.ej. icono), cachea lo que sí existe
+        return Promise.all(PRECACHE.map(function (url) {
+          return cache.add(url).catch(function () {});
+        }));
+      });
     }).then(function () {
       return self.skipWaiting();
     })

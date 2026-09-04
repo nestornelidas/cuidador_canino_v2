@@ -148,6 +148,7 @@
     initNav();
     try {
       await DB.open();
+      if (root.Supa && root.Supa.loadEnv) { try{ await root.Supa.loadEnv(); }catch(e){} }
       if (root.ExtraGate) await root.ExtraGate.boot();
       await (root.AuthSupa && root.Supa && root.Supa.isConfigured && root.Supa.isConfigured() ? root.AuthSupa.boot : root.Gate.boot)(); /* bloquea el arranque hasta que haya contraseña maestra en memoria */
       /* Migración única: si se amplió el catálogo de campos cifrados o quedaron registros

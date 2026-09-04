@@ -75,9 +75,9 @@ create policy "own rows" on services for all using (auth.uid() = user_id) with c
 create policy "own rows" on events for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 create policy "own rows" on templates for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 
--- Trigger para actualizar updated_at automáticamente
+-- Trigger para actualizar updated_at automáticamente (search_path fijo para evitar hijack)
 create or replace function touch_updated_at() returns trigger as $$
-begin new.updated_at = now(); return new; end; $$ language plpgsql;
+begin new.updated_at = now(); return new; end; $$ language plpgsql set search_path = public;
 
 drop trigger if exists trg_contacts_touch on contacts;
 create trigger trg_contacts_touch before update on contacts for each row execute function touch_updated_at();
@@ -91,13 +91,19 @@ drop trigger if exists trg_templates_touch on templates;
 create trigger trg_templates_touch before update on templates for each row execute function touch_updated_at();
 
 
--- Grants para Data API (anon/authenticated) - necesario para rest/v1
+-- Grants para Data API - anon solo lectura mínima, escritura solo authenticated (RLS hace el resto)
 grant usage on schema public to anon, authenticated;
-grant all on table contacts to anon, authenticated;
-grant all on table dogs to anon, authenticated;
-grant all on table services to anon, authenticated;
-grant all on table events to anon, authenticated;
-grant all on table templates to anon, authenticated;
+grant select on table contacts to anon;
+grant all on table contacts to authenticated;
+grant select on table dogs to anon;
+grant all on table dogs to authenticated;
+grant select on table services to anon;
+grant all on table services to authenticated;
+grant select on table events to anon;
+grant all on table events to authenticated;
+grant select on table templates to anon;
+grant all on table templates to authenticated;
 grant usage, select on all sequences in schema public to anon, authenticated;
-alter default privileges in schema public grant all on tables to anon, authenticated;
+alter default privileges in schema public grant select on tables to anon;
+alter default privileges in schema public grant all on tables to authenticated;
 alter default privileges in schema public grant usage, select on sequences to anon, authenticated;
