@@ -101,9 +101,7 @@
     /* ---- Contactos (cifrado transparente: se descifra al leer y se cifra al escribir) ---- */
     listContacts: async function () {
       var all = (await DB.getAll('contacts')) || [];
-      var out = [];
-      for (var i = 0; i < all.length; i++) out.push(await Crypto.decryptRecord('contact', all[i]));
-      return out;
+      return Promise.all(all.map(function (r) { return Crypto.decryptRecord('contact', r); }));
     },
     getContact: async function (id) {
       var r = await DB.get('contacts', id);
@@ -169,8 +167,7 @@
     /* ---- Perros (cifrado transparente de datos personales en texto libre) ---- */
     async listDogs(opts) {
       var dogs = (await DB.getAll('dogs')) || [];
-      var out = [];
-      for (var i = 0; i < dogs.length; i++) out.push(await Crypto.decryptRecord('dog', dogs[i]));
+      var out = await Promise.all(dogs.map(function (r) { return Crypto.decryptRecord('dog', r); }));
       if (opts && opts.includeInactive === false) out = out.filter(function (d) { return d.activo !== false; });
       return out.sort(function (a, b) { return String(a.nombre).localeCompare(String(b.nombre), 'es'); });
     },
@@ -191,8 +188,7 @@
     /* ---- Servicios (cifrado transparente de notas) ---- */
     async listServices() {
       var s = (await DB.getAll('services')) || [];
-      var out = [];
-      for (var i = 0; i < s.length; i++) out.push(await Crypto.decryptRecord('service', s[i]));
+      var out = await Promise.all(s.map(function (r) { return Crypto.decryptRecord('service', r); }));
       return out.sort(function (a, b) { return String(a.desde).localeCompare(String(b.desde)); });
     },
     /* Servicios tal y como se almacenan (cifrados). Para exportar. */
@@ -209,9 +205,7 @@
     async deleteService(id) { await DB.del('services', id); },
     async listServicesByDog(dogId) {
       var list = (await DB.getAllByIndex('services', 'dog_ids', dogId)) || [];
-      var out = [];
-      for (var i = 0; i < list.length; i++) out.push(await Crypto.decryptRecord('service', list[i]));
-      return out;
+      return Promise.all(list.map(function (r) { return Crypto.decryptRecord('service', r); }));
     },
     async listServicesInRange(fromISO, toISO) {
       var all = await Store.listServices();
@@ -243,8 +237,7 @@
     /* ---- Eventos esporádicos (cifrado transparente de la descripción) ---- */
     async listEvents() {
       var list = (await DB.getAll('events')) || [];
-      var out = [];
-      for (var i = 0; i < list.length; i++) out.push(await Crypto.decryptRecord('event', list[i]));
+      var out = await Promise.all(list.map(function (r) { return Crypto.decryptRecord('event', r); }));
       return out.sort(function (a, b) {
         return String(a.fecha).localeCompare(String(b.fecha)) ||
           String(a.hora || '').localeCompare(String(b.hora || '')) ||

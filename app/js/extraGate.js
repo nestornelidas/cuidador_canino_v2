@@ -16,6 +16,31 @@
     for (var i=0;i<u.length;i++) out += (u[i]<16?'0':'')+u[i].toString(16);
     return out;
   }
+  // PBKDF2 para PIN (más resistente que SHA-256 simple). Formato: pbkdf2$iter$saltB64$hashB64
+  var PIN_ITER = 80000;
+  function ab2b64(buf){ var u=new Uint8Array(buf), s='', CH=0x8000; for(var i=0;i<u.length;i+=CH) s+=String.fromCharCode.apply(null,u.subarray(i,i+CH)); return btoa(s); }
+  function b642ab(b64){ var s=atob(b64), u=new Uint8Array(s.length); for(var i=0;i<s.length;i++) u[i]=s.charCodeAt(i); return u; }
+  async function hashPin(pin){
+    var salt = crypto.getRandomValues(new Uint8Array(16));
+    var enc = new TextEncoder();
+    var km = await crypto.subtle.importKey('raw', enc.encode(String(pin)), {name:'PBKDF2'}, false, ['deriveBits']);
+    var bits = await crypto.subtle.deriveBits({name:'PBKDF2', salt: salt, iterations: PIN_ITER, hash:'SHA-256'}, km, 256);
+    return 'pbkdf2$'+PIN_ITER+'$'+ab2b64(salt)+'$'+ab2b64(new Uint8Array(bits));
+  }
+  async function verifyPin(pin, stored){
+    if(!stored) return false;
+    if(stored.indexOf('pbkdf2$')===0){
+      try{
+        var p=stored.split('$'); var iter=parseInt(p[1],10); var salt=b642ab(p[2]);
+        var km=await crypto.subtle.importKey('raw', new TextEncoder().encode(String(pin)), {name:'PBKDF2'}, false, ['deriveBits']);
+        var bits=await crypto.subtle.deriveBits({name:'PBKDF2', salt:salt, iterations:iter, hash:'SHA-256'}, km, 256);
+        return ab2b64(new Uint8Array(bits))===p[3];
+      }catch(e){ return false; }
+    }
+    // legacy SHA-256 hex
+    var h=await shaHex(pin);
+    return h===stored;
+  }
   function getHash(){ try{return localStorage.getItem(LS_HASH)||''}catch(e){return ''} }
   function setHash(h){ try{localStorage.setItem(LS_HASH,h)}catch(e){} }
   function overlayEl(){
@@ -71,7 +96,7 @@
           var p2=gate.querySelector('#ep2').value.trim();
           if(!/^\d{6}$/.test(p1)){ err.textContent='El PIN debe ser 6 dígitos.'; err.hidden=false; return; }
           if(p1!==p2){ err.textContent='Los PIN no coinciden.'; err.hidden=false; return; }
-          var h=await shaHex(p1);
+          var h=await hashPin(p1);
           setHash(h);
           try{ sessionStorage.setItem(SS_OK,'1'); localStorage.setItem(LS_TS,String(Date.now())); }catch(e){}
           await setSharedHash(h);
@@ -85,8 +110,14 @@
         var tries=0;
         async function goShared(){
           var p=gate.querySelector('#epIn').value.trim();
-          var h=await shaHex(p);
-          if(h===shared){ try{ sessionStorage.setItem(SS_OK,'1'); localStorage.setItem(LS_TS,String(Date.now())); localStorage.setItem(LS_HASH,h); }catch(e){} gate.remove(); resolve(); }
+          var ok=await verifyPin(p, shared);
+          if(ok){
+            // migra hash legacy a PBKDF2 al primer acierto
+            if(shared && shared.indexOf('pbkdf2$')!==0){
+              try{ var nh=await hashPin(p); await setSharedHash(nh); localStorage.setItem(LS_HASH,nh); shared=nh; }catch(e){}
+            }
+            try{ sessionStorage.setItem(SS_OK,'1'); localStorage.setItem(LS_TS,String(Date.now())); if(shared.indexOf('pbkdf2$')!==0) localStorage.setItem(LS_HASH,shared); }catch(e){} gate.remove(); resolve();
+          }
           else { tries++; err2.textContent='PIN incorrecto. Intento '+tries+'/3'; err2.hidden=false; if(tries>=3) { err2.textContent='PIN incorrecto. Recarga para reintentar.'; gate.querySelector('#epGo').disabled=true; } }
         }
         gate.querySelector('#epGo').addEventListener('click', goShared);
@@ -102,8 +133,15 @@
         var tries=0;
         async function go(){
           var p=gate.querySelector('#epIn').value.trim();
-          var h=await shaHex(p);
-          if(h===getHash()){ try{ sessionStorage.setItem(SS_OK,'1'); localStorage.setItem(LS_TS,String(Date.now())); }catch(e){} gate.remove(); resolve(); }
+          var ok=await verifyPin(p, getHash());
+          if(ok){
+            // migra legacy a PBKDF2
+            var cur=getHash();
+            if(cur && cur.indexOf('pbkdf2$')!==0){
+              try{ var nh2=await hashPin(p); setHash(nh2); await setSharedHash(nh2); }catch(e){}
+            }
+            try{ sessionStorage.setItem(SS_OK,'1'); localStorage.setItem(LS_TS,String(Date.now())); }catch(e){} gate.remove(); resolve();
+          }
           else { tries++; err2.textContent='PIN incorrecto. Intento '+tries+'/3'; err2.hidden=false; if(tries>=3) { err2.textContent='PIN incorrecto. Recarga para reintentar.'; gate.querySelector('#epGo').disabled=true; } }
         }
         gate.querySelector('#epGo').addEventListener('click', go);
