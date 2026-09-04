@@ -36,7 +36,15 @@
           if (del.error) throw del.error;
           return true;
         }
-        var up = await c.from(table).upsert({ id: rec.id, user_id: uid, data: rec, updated_at: new Date().toISOString() }, { onConflict: 'id' });
+        // last-write-wins: no pisar si remoto es más nuevo
+        try{
+          var ex = await c.from(table).select('updated_at').eq('id', id).eq('user_id', uid).maybeSingle();
+          if(ex && ex.data && ex.data.updated_at && rec._updated_at && ex.data.updated_at > rec._updated_at) return true;
+        }catch(e){}
+        var now = new Date().toISOString();
+        rec._updated_at = now;
+        try{ await root.DB.put(table, rec); }catch(e){}
+        var up = await c.from(table).upsert({ id: rec.id, user_id: uid, data: rec, updated_at: now }, { onConflict: 'id' });
         if (up.error) throw up.error;
         return true;
       }
@@ -47,7 +55,14 @@
         if (d2.error) throw d2.error;
         return true;
       }
-      var payload = { id: stored.id, user_id: uid, data: stored, updated_at: new Date().toISOString() };
+      try{
+        var ex2 = await c.from(table).select('updated_at').eq('id', id).eq('user_id', uid).maybeSingle();
+        if(ex2 && ex2.data && ex2.data.updated_at && stored._updated_at && ex2.data.updated_at > stored._updated_at) return true;
+      }catch(e){}
+      var now2 = new Date().toISOString();
+      stored._updated_at = now2;
+      try{ await root.DB.put(table, stored); }catch(e){}
+      var payload = { id: stored.id, user_id: uid, data: stored, updated_at: now2 };
       var res = await c.from(table).upsert(payload, { onConflict: 'id' });
       if (res.error) throw res.error;
       return true;
@@ -90,11 +105,20 @@
         var rows = res.data || [];
         for (var i = 0; i < rows.length; i++) {
           var r = rows[i];
-          // data ya contiene el objeto con enc: ; lo guardamos tal cual en IndexedDB
+          // last-write-wins: no pisar local más nuevo
+          try{
+            var local = await root.DB.get(table, r.id);
+            if(local && local._updated_at && r.updated_at && local._updated_at > r.updated_at){
+              // local más nuevo -> no pisar, se subirá en próximo push
+              continue;
+            }
+            if(r.data) r.data._updated_at = r.updated_at;
+          }catch(e){}
           await root.DB.put(table, r.data);
           total++;
         }
         // Nota: no borramos locales que no estén en remoto en v1 (evita pérdida si pull parcial)
+        // Los borrados locales se propagan vía pushOne(delete) con cola LS_QUEUE
       } catch (e) {
         console.warn('[Sync] pull fallo', table, e && e.message ? e.message : e);
       }
