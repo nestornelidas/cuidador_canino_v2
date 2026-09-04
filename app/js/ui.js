@@ -224,6 +224,8 @@
           var canvas = document.createElement('canvas');
           canvas.width = nw; canvas.height = nh;
           var ctx = canvas.getContext('2d');
+          ctx.fillStyle = '#ffffff'; /* JPEG no tiene transparencia: fondo blanco en vez de negro */
+          ctx.fillRect(0, 0, nw, nh);
           ctx.drawImage(img, 0, 0, nw, nh);
           resolve(canvas.toDataURL('image/jpeg', 0.85));
         };

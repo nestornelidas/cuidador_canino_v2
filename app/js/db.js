@@ -57,14 +57,6 @@
     return dbPromise;
   }
 
-  function txDone(tx) {
-    return new Promise(function (resolve, reject) {
-      tx.oncomplete = function () { resolve(); };
-      tx.onerror = function () { reject(tx.error); };
-      tx.onabort = function () { reject(tx.error || new Error('Transacción abortada')); };
-    });
-  }
-
   function req(p) {
     return new Promise(function (resolve, reject) {
       p.onsuccess = function (e) { resolve(e.target.result); };

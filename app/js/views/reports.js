@@ -17,7 +17,7 @@
 
     html += '<section class="card print-area"><div class="chart-head"><h2>' + UI.icon('chart') + ' Rendimiento por año</h2><button class="btn btn-soft btn-sm no-print" id="csvPerf">' + UI.icon('download') + ' CSV</button></div>';
     html += '<div class="table-wrap"><table class="table"><thead><tr>' +
-      '<th data-key="y" data-type="text">Año</th><th data-key="redito" data-type="num">Redito</th>' +
+      '<th data-key="y" data-type="text">Año</th><th data-key="redito" data-type="num">Rédito</th>' +
       '<th data-key="media" data-type="num">Media mensual</th><th data-key="n" data-type="num">Nº servicios</th>' +
       '<th data-key="mediaSvc" data-type="num">Media por servicio</th>' +
       '<th class="th-var" title="Incremento / decremento de la facturación frente al año anterior">▲▼ FACTURACIÓN</th>' +
@@ -527,7 +527,8 @@
       yearSel.value = cur;
 
       var fY = cur;
-      var usable = services.filter(function (s) { return s.estado !== 'cancelado'; });
+      // Sin desde/hasta el prorrateo da NaN y slice rompe: se excluyen (la validación los exige al guardar).
+      var usable = services.filter(function (s) { return s.estado !== 'cancelado' && s.desde && s.hasta; });
       var filtered = usable.filter(function (s) { return !fY || s.desde.slice(0, 4) === fY; });
 
       /* La media mensual del año en curso solo contempla los meses transcurridos */

@@ -344,7 +344,9 @@
     }
     btnSave.addEventListener('click', save);
     if (btnDelete) {
-      btnDelete.addEventListener('click', function () {
+      btnDelete.addEventListener('click', async function () {
+        var ok = await UI.confirmDialog({ title: 'Eliminar evento', message: '¿Está seguro de eliminar este evento?', confirmText: 'Sí, eliminar' });
+        if (!ok) return;
         Store.deleteEvent(ev.id).then(function () {
           m.close();
           UI.toast('Evento eliminado', 'success');

@@ -108,8 +108,10 @@
     var k = key || currentKey;
     var out = Object.assign({}, obj);
     if (!k) return out;
-    /* hash del nombre en CLARO (el campo puede estar cifrado a continuación) */
-    if (kind === 'contact' && !isEnc(out.nombre)) out.hash_busqueda = await hashField(out.nombre);
+    /* hash_busqueda (legado): ya no se genera — era un hash sin salt del nombre
+       que viajaba en claro a la nube y a los backups. Se elimina si viene en
+       registros antiguos. hashField se conserva como utilidad/test. */
+    if ('hash_busqueda' in out) delete out.hash_busqueda;
     var fields = fieldsFor(kind);
     await Promise.all(fields.map(async function (f) {
       if (out[f] != null && out[f] !== '' && !isEnc(out[f])) {
