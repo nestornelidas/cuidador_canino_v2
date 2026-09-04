@@ -107,15 +107,16 @@
       '<button class="btn btn-soft" id="btnLockSesion">' + UI.icon('logout') + ' Cerrar sesión</button>' +
       '</div></section>';
 
-    /* --- Comportamientos --- */
-    html += '<section class="card"><h2>' + UI.icon('dog') + ' Comportamientos</h2>';
-    html += '<p class="hint">Lista de comportamientos disponibles en el formulario de cada perro. Las categorías aparecen minimizadas: pulsa la flecha (▼/▲) para mostrar u ocultar su listado. Puedes añadir o borrar comportamientos y categorías y corregir los textos. Pulsa "Guardar comportamientos" para aplicar los cambios.</p>';
-    html += '<div id="behavEditor"></div>';
+    /* --- Comportamientos (sección minimizada por defecto, con flecha maestra) --- */
+    html += '<section class="card"><h2>' + UI.icon('dog') + ' Comportamientos' +
+      '<button type="button" class="icon-btn" id="behavSectionToggle" title="Mostrar/ocultar sección" style="margin-left:auto">' + UI.icon('chevron_down') + '</button></h2>';
+    html += '<p class="hint">Lista de comportamientos disponibles en el formulario de cada perro. La sección aparece minimizada: pulsa la flecha (▼/▲) del título para mostrarla u ocultarla; dentro, cada categoría tiene su propia flecha. Pulsa "Guardar comportamientos" para aplicar los cambios.</p>';
+    html += '<div id="behavSectionBody" hidden><div id="behavEditor"></div>';
     html += '<div class="form-actions">' +
       '<button class="btn btn-soft" id="behavAddGroup">' + UI.icon('plus') + ' Añadir categoría</button>' +
       '<button class="btn btn-soft" id="behavReset">' + UI.icon('refresh') + ' Valores por defecto</button>' +
       '<button class="btn btn-primary" id="behavSave">' + UI.icon('check') + ' Guardar comportamientos</button>' +
-      '</div></section>';
+      '</div></div></section>';
 
     /* --- Canales de captación --- */
     html += '<section class="card"><h2>' + UI.icon('users') + ' Canales de captación</h2>';
@@ -144,6 +145,18 @@
     }
     var grupos = normGrupos(Store.getConfig().comportamientos || Store.defaultComportamientos());
     var ed = document.getElementById('behavEditor');
+
+    /* Flecha maestra de la sección: muestra/oculta todo el bloque */
+    (function () {
+      var secToggle = document.getElementById('behavSectionToggle');
+      var secBody = document.getElementById('behavSectionBody');
+      if (!secToggle || !secBody) return;
+      secToggle.addEventListener('click', function () {
+        var hiddenNow = secBody.hidden;
+        secBody.hidden = !hiddenNow;
+        secToggle.innerHTML = hiddenNow ? UI.icon('chevron_up') : UI.icon('chevron_down');
+      });
+    })();
 
     function renderBehaviors() {
       ed.innerHTML = grupos.map(function (g, gi) {

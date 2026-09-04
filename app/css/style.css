@@ -253,6 +253,10 @@ body {
 /* ---------- Formularios ---------- */
 .form-field { display: flex; flex-direction: column; }
 .form-field[hidden] { display: none; }
+/* El atributo hidden siempre oculta, por encima de los display de componentes
+   (.behav-items es flex, .btn es inline-flex y lo anulaban: las listas nunca
+   se minimizaban aunque llevaran hidden). */
+[hidden] { display: none !important; }
 .form-field > label {
   font-size: 0.83rem;
   font-weight: 700;
