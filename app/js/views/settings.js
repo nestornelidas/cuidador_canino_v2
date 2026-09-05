@@ -26,6 +26,62 @@
     html += '<div class="form-field"><label class="chk"><input type="checkbox" id="cfgOcultarRedFlags"' + (config.ocultarRedFlags ? ' checked' : '') + '> Ocultar perros marcados con "RED FLAG."</label>' +
       '<p class="hint">Si está marcado, los perros que tengan el comportamiento "RED FLAG." en cualquiera de las áreas (personas, en paseo, perros, en casa...) no aparecen en la lista de perros. Solo afecta a esa lista.</p></div></section>';
 
+    /* --- Datos --- */
+    html += '<section class="card"><h2>' + UI.icon('refresh') + ' Datos (copia de seguridad)</h2>';
+    html += '<div class="form-field"><label>Tamaño de la base de datos</label><div class="static-val" id="dbSizeVal">Calculando…</div>' +
+      '<p class="hint">Espacio en disco que ocupan los datos (perros, servicios, contactos, plantillas, eventos y configuración).</p></div>';
+    html += '<div class="btn-stack">' +
+      '<button class="btn" id="btnExport">' + UI.icon('download') + ' Exportar BBDD (JSON)</button>' +
+      '<button class="btn" id="btnImport">' + UI.icon('upload') + ' Importar BBDD (JSON)</button>' +
+      '<input type="file" id="importFile" accept=".json,application/json" hidden>' +
+      '<button class="btn btn-danger" id="btnWipe">' + UI.icon('trash') + ' Borrar todos los datos</button>' +
+      '</div>' +
+      '<p class="hint">La importación sobrescribe toda la base de datos (perros, servicios, contactos, plantillas y configuración).</p></section>';
+
+    /* --- Canales de captación --- */
+    html += '<section class="card"><h2>' + UI.icon('users') + ' Canales de captación</h2>';
+    html += '<p class="hint">Canales disponibles en el campo "Referido (canal de captación)" de cada humano. El canal "Boca a boca" muestra además la casilla "Recomendado por". Si renombras un canal, el cambio se propaga a los humanos que lo tenían asignado.</p>';
+    html += '<div id="captEditor"></div>';
+    html += '<div class="form-actions">' +
+      '<button class="btn btn-soft" id="captAdd">' + UI.icon('plus') + ' Añadir canal</button>' +
+      '<button class="btn btn-soft" id="captReset">' + UI.icon('refresh') + ' Valores por defecto</button>' +
+      '<button class="btn btn-primary" id="captSave">' + UI.icon('check') + ' Guardar canales</button>' +
+      '</div></section>';
+
+    /* --- Comportamientos (sección minimizada por defecto, con flecha maestra) --- */
+    html += '<section class="card"><h2>' + UI.icon('dog') + ' Comportamientos' +
+      '<button type="button" class="icon-btn" id="behavSectionToggle" title="Mostrar/ocultar sección" style="margin-left:auto">' + UI.icon('chevron_down') + '</button></h2>';
+    html += '<p class="hint">Lista de comportamientos disponibles en el formulario de cada perro. La sección aparece minimizada: pulsa la flecha (▼/▲) del título para mostrarla u ocultarla; dentro, cada categoría tiene su propia flecha. Pulsa "Guardar comportamientos" para aplicar los cambios.</p>';
+    html += '<div id="behavSectionBody" hidden><div id="behavEditor"></div>';
+    html += '<div class="form-actions">' +
+      '<button class="btn btn-soft" id="behavAddGroup">' + UI.icon('plus') + ' Añadir categoría</button>' +
+      '<button class="btn btn-soft" id="behavReset">' + UI.icon('refresh') + ' Valores por defecto</button>' +
+      '<button class="btn btn-primary" id="behavSave">' + UI.icon('check') + ' Guardar comportamientos</button>' +
+      '</div></div></section>';
+
+    /* --- Seguridad (cifrado) --- */
+    html += '<section class="card"><h2>' + UI.icon('lock') + ' Seguridad</h2>';
+    html += '<p class="hint">Los datos personales de los humanos (nombre, teléfono, Telegram y WhatsApp) se guardan cifrados en el dispositivo. La clave maestra solo está en memoria durante la sesión y nunca se almacena.</p>';
+    html += '<div class="btn-stack">' +
+      '<button class="btn" id="btnChangePw">' + UI.icon('key') + ' Cambiar contraseña maestra</button>' +
+      '<button class="btn btn-soft" id="btnResetPin">' + UI.icon('key') + ' Cambiar PIN de acceso público</button>' +
+      '<button class="btn btn-soft" id="btnLockSesion">' + UI.icon('logout') + ' Cerrar sesión</button>' +
+      '</div></section>';
+
+    /* --- Nube (Supabase) --- */
+    var supaUrl = (root.Supa && root.Supa.getUrl) ? root.Supa.getUrl() : '';
+    var supaKey = (root.Supa && root.Supa.getKey) ? root.Supa.getKey() : '';
+    var isSupaCfg = !!(supaUrl && supaKey);
+    html += '<section class="card"><h2>' + UI.icon('cloud') + ' Nube (Supabase) - sincronización móvil y PC</h2>';
+    html += '<p class="hint">Configura Supabase (gratis) para ver los mismos datos en móvil y PC. Sin configurar, la app sigue 100% offline. Ver <code>supabase/README.md</code> y <code>supabase/schema.sql</code>.</p>';
+    html += '<div class="form-field"><label>Supabase URL</label><input type="text" class="input" id="supaUrl" value="' + UI.esc(supaUrl) + '" placeholder="https://xxxxx.supabase.co"></div>';
+    html += '<div class="form-field"><label>Supabase anon key</label><input type="password" class="input" id="supaKey" value="' + UI.esc(supaKey) + '" placeholder="eyJhbG..." autocomplete="off"></div>';
+    html += '<div class="form-actions"><button class="btn btn-primary" id="saveSupa">' + UI.icon('check') + ' Guardar nube</button> <button class="btn" id="clearSupa">' + UI.icon('x') + ' Desactivar nube</button></div>';
+    html += '<div class="form-field"><div class="static-val" id="supaStatus">' + (isSupaCfg ? 'Configurada - recarga para activar login por email' : 'No configurada (modo offline)') + '</div></div>';
+    html += '<div class="btn-stack"><button class="btn" id="btnSupaPull">' + UI.icon('download') + ' Sincronizar ahora (pull)</button><button class="btn" id="btnSupaPush">' + UI.icon('upload') + ' Subir datos locales a nube (push)</button></div>';
+    html += '<p class="hint">Estado cola: <span id="supaQueueInfo">-</span> · Último pull: <span id="supaLastPull">-</span></p>';
+    html += '</section>';
+
     /* --- Colores del calendario --- */
     html += '<section class="card"><h2>' + UI.icon('palette') + ' Colores del calendario</h2>';
     html += '<p class="hint">Colores de las barras del calendario según el estado de cada servicio, y de los eventos esporádicos.</p>';
@@ -70,62 +126,6 @@
       '<div class="form-actions">' +
       '<button class="btn" id="gConnect">' + UI.icon('link') + ' Conectar</button>' +
       '<button class="btn btn-primary" id="saveGoogle">' + UI.icon('check') + ' Guardar</button>' +
-      '</div></section>';
-
-    /* --- Nube (Supabase) --- */
-    var supaUrl = (root.Supa && root.Supa.getUrl) ? root.Supa.getUrl() : '';
-    var supaKey = (root.Supa && root.Supa.getKey) ? root.Supa.getKey() : '';
-    var isSupaCfg = !!(supaUrl && supaKey);
-    html += '<section class="card"><h2>' + UI.icon('cloud') + ' Nube (Supabase) - sincronización móvil y PC</h2>';
-    html += '<p class="hint">Configura Supabase (gratis) para ver los mismos datos en móvil y PC. Sin configurar, la app sigue 100% offline. Ver <code>supabase/README.md</code> y <code>supabase/schema.sql</code>.</p>';
-    html += '<div class="form-field"><label>Supabase URL</label><input type="text" class="input" id="supaUrl" value="' + UI.esc(supaUrl) + '" placeholder="https://xxxxx.supabase.co"></div>';
-    html += '<div class="form-field"><label>Supabase anon key</label><input type="password" class="input" id="supaKey" value="' + UI.esc(supaKey) + '" placeholder="eyJhbG..." autocomplete="off"></div>';
-    html += '<div class="form-actions"><button class="btn btn-primary" id="saveSupa">' + UI.icon('check') + ' Guardar nube</button> <button class="btn" id="clearSupa">' + UI.icon('x') + ' Desactivar nube</button></div>';
-    html += '<div class="form-field"><div class="static-val" id="supaStatus">' + (isSupaCfg ? 'Configurada - recarga para activar login por email' : 'No configurada (modo offline)') + '</div></div>';
-    html += '<div class="btn-stack"><button class="btn" id="btnSupaPull">' + UI.icon('download') + ' Sincronizar ahora (pull)</button><button class="btn" id="btnSupaPush">' + UI.icon('upload') + ' Subir datos locales a nube (push)</button></div>';
-    html += '<p class="hint">Estado cola: <span id="supaQueueInfo">-</span> · Último pull: <span id="supaLastPull">-</span></p>';
-    html += '</section>';
-
-    /* --- Datos --- */
-    html += '<section class="card"><h2>' + UI.icon('refresh') + ' Datos (copia de seguridad)</h2>';
-    html += '<div class="form-field"><label>Tamaño de la base de datos</label><div class="static-val" id="dbSizeVal">Calculando…</div>' +
-      '<p class="hint">Espacio en disco que ocupan los datos (perros, servicios, contactos, plantillas, eventos y configuración).</p></div>';
-    html += '<div class="btn-stack">' +
-      '<button class="btn" id="btnExport">' + UI.icon('download') + ' Exportar BBDD (JSON)</button>' +
-      '<button class="btn" id="btnImport">' + UI.icon('upload') + ' Importar BBDD (JSON)</button>' +
-      '<input type="file" id="importFile" accept=".json,application/json" hidden>' +
-      '<button class="btn btn-danger" id="btnWipe">' + UI.icon('trash') + ' Borrar todos los datos</button>' +
-      '</div>' +
-      '<p class="hint">La importación sobrescribe toda la base de datos (perros, servicios, contactos, plantillas y configuración).</p></section>';
-
-    /* --- Seguridad (cifrado) --- */
-    html += '<section class="card"><h2>' + UI.icon('lock') + ' Seguridad</h2>';
-    html += '<p class="hint">Los datos personales de los humanos (nombre, teléfono, Telegram y WhatsApp) se guardan cifrados en el dispositivo. La clave maestra solo está en memoria durante la sesión y nunca se almacena.</p>';
-    html += '<div class="btn-stack">' +
-      '<button class="btn" id="btnChangePw">' + UI.icon('key') + ' Cambiar contraseña maestra</button>' +
-      '<button class="btn btn-soft" id="btnResetPin">' + UI.icon('key') + ' Cambiar PIN de acceso público</button>' +
-      '<button class="btn btn-soft" id="btnLockSesion">' + UI.icon('logout') + ' Cerrar sesión</button>' +
-      '</div></section>';
-
-    /* --- Comportamientos (sección minimizada por defecto, con flecha maestra) --- */
-    html += '<section class="card"><h2>' + UI.icon('dog') + ' Comportamientos' +
-      '<button type="button" class="icon-btn" id="behavSectionToggle" title="Mostrar/ocultar sección" style="margin-left:auto">' + UI.icon('chevron_down') + '</button></h2>';
-    html += '<p class="hint">Lista de comportamientos disponibles en el formulario de cada perro. La sección aparece minimizada: pulsa la flecha (▼/▲) del título para mostrarla u ocultarla; dentro, cada categoría tiene su propia flecha. Pulsa "Guardar comportamientos" para aplicar los cambios.</p>';
-    html += '<div id="behavSectionBody" hidden><div id="behavEditor"></div>';
-    html += '<div class="form-actions">' +
-      '<button class="btn btn-soft" id="behavAddGroup">' + UI.icon('plus') + ' Añadir categoría</button>' +
-      '<button class="btn btn-soft" id="behavReset">' + UI.icon('refresh') + ' Valores por defecto</button>' +
-      '<button class="btn btn-primary" id="behavSave">' + UI.icon('check') + ' Guardar comportamientos</button>' +
-      '</div></div></section>';
-
-    /* --- Canales de captación --- */
-    html += '<section class="card"><h2>' + UI.icon('users') + ' Canales de captación</h2>';
-    html += '<p class="hint">Canales disponibles en el campo "Referido (canal de captación)" de cada humano. El canal "Boca a boca" muestra además la casilla "Recomendado por". Si renombras un canal, el cambio se propaga a los humanos que lo tenían asignado.</p>';
-    html += '<div id="captEditor"></div>';
-    html += '<div class="form-actions">' +
-      '<button class="btn btn-soft" id="captAdd">' + UI.icon('plus') + ' Añadir canal</button>' +
-      '<button class="btn btn-soft" id="captReset">' + UI.icon('refresh') + ' Valores por defecto</button>' +
-      '<button class="btn btn-primary" id="captSave">' + UI.icon('check') + ' Guardar canales</button>' +
       '</div></section>';
 
     container.innerHTML = html;
