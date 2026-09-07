@@ -167,6 +167,15 @@
          para no descifrar toda la base 3 veces al abrir la app. */
       App.updateBrand();
       if (root.Sync) { try { root.Sync.startAutoSync(); } catch(e){} }
+      /* Descarga novedades al abrir (no bloquea el pintado): sin esto, un
+         dispositivo que sigue online jamás vería los cambios del otro.
+         Si trae algo, repinta la vista. */
+      if (root.Sync && root.Sync.pullAll) {
+        try {
+          var pp = root.Sync.pullAll();
+          if (pp && pp.then) pp.then(function (r) { if (r && (r.pulled > 0 || r.repaired > 0)) render(); });
+        } catch(e){}
+      }
       render();
     } catch (err) {
       document.getElementById('view').innerHTML =

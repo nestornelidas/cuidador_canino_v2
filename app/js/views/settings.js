@@ -78,7 +78,8 @@
     html += '<div class="form-field"><label>Supabase anon key</label><input type="password" class="input" id="supaKey" value="' + UI.esc(supaKey) + '" placeholder="eyJhbG..." autocomplete="off"></div>';
     html += '<div class="form-actions"><button class="btn btn-primary" id="saveSupa">' + UI.icon('check') + ' Guardar nube</button> <button class="btn" id="clearSupa">' + UI.icon('x') + ' Desactivar nube</button></div>';
     html += '<div class="form-field"><div class="static-val" id="supaStatus">' + (isSupaCfg ? 'Configurada - recarga para activar login por email' : 'No configurada (modo offline)') + '</div></div>';
-    html += '<div class="btn-stack"><button class="btn" id="btnSupaPull">' + UI.icon('download') + ' Sincronizar ahora (pull)</button><button class="btn" id="btnSupaPush">' + UI.icon('upload') + ' Subir datos locales a nube (push)</button></div>';
+    html += '<div class="btn-stack"><button class="btn" id="btnSupaPull">' + UI.icon('download') + ' Sincronizar ahora (pull)</button><button class="btn" id="btnSupaPush">' + UI.icon('upload') + ' Subir datos locales a nube (push)</button><button class="btn" id="btnSupaRepair">' + UI.icon('refresh') + ' Reparar sincronización</button></div>';
+    html += '<p class="hint">Reparar descarga todo de nuevo y elimina copias locales de datos ya borrados en otro dispositivo.</p>';
     html += '<p class="hint">Estado cola: <span id="supaQueueInfo">-</span> · Último pull: <span id="supaLastPull">-</span></p>';
     html += '</section>';
 
@@ -508,6 +509,15 @@
         UI.toast('Subiendo datos locales...','info');
         var n=await root.Sync.pushAllLocal();
         updInfo(); UI.toast('Push OK: '+n+' registros','success');
+      });
+      var repairBtn=document.getElementById('btnSupaRepair');
+      if(repairBtn) repairBtn.addEventListener('click', async function(){
+        if(!root.Supa.isConfigured()){ UI.toast('Configura primero','error'); return; }
+        var sess=await root.Supa.getSession();
+        if(!sess){ UI.toast('Inicia sesión primero','error'); return; }
+        UI.toast('Reparando sincronización...','info');
+        var r=await root.Sync.pullAll({full:true});
+        updInfo(); UI.toast('Reparado: '+r.pulled+' actualizados, '+r.repaired+' eliminados','success'); App.refresh();
       });
     })();
 

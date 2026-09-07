@@ -2,7 +2,7 @@
 
 1. Crear proyecto en https://supabase.com (Free: 500 MB, 50k MAU).
 2. Dashboard > Settings > API: copia `Project URL` y `anon public key`.
-3. Dashboard > SQL Editor > New query: pega `schema.sql` completo > Run.
+3. Dashboard > SQL Editor > New query: pega `schema.sql` completo > Run. Repite con `sync_tombstones.sql` (propaga los borrados entre dispositivos; sin él solo viajan altas y ediciones).
 4. Dashboard > Authentication > Providers > Email: Enable, Confirm email OFF (para probar), Secure password ON.
 5. En la app (rama migracion-nube): Configuracion > Nube: pega URL y anon key > Guardar > recarga e Inicia sesion con email+password. Nota: el registro de cuentas nuevas está desactivado (signups OFF); crea el usuario en Dashboard > Authentication > Users > Add user, la app solo hace login.
 6. Primera sincronizacion: si ya tenias datos offline, se hace push automatico al iniciar sesion. Verifica en Table Editor que aparecen filas.

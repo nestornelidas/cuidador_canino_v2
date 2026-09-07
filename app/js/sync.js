@@ -2,10 +2,30 @@
 (function (root) {
   'use strict';
   var TABLES = ['contacts', 'dogs', 'services', 'events', 'templates'];
+  var T_TOMB = 'sync_tombstones';
   var LS_QUEUE = 'cc_sync_queue_v1';
   var LS_LAST_PULL = 'cc_sync_last_pull_v1';
+  /* Margen anti-desfase de relojes: el pull incremental pide desde
+     (last_pull - 2 min); el last-write-wins deduplica lo repetido. */
+  var PULL_MARGIN_MS = 2 * 60 * 1000;
+  var TOMB_PRUNE_MS = 30 * 24 * 3600 * 1000;
 
   function isOnline() { return typeof navigator === 'undefined' ? true : navigator.onLine; }
+
+  /* La tabla de lápidas es opcional (requiere sync_tombstones.sql): si no
+     existe, el subsistema se desactiva en silencio sin romper el sync. */
+  function isMissingTable(e) {
+    var m = String((e && e.message) || e || '');
+    return /Could not find the table|42P01|does not exist/i.test(m);
+  }
+
+  /* Registra una lápida para que los otros dispositivos borren su copia.
+     Best-effort: si falla (p.ej. tabla aún no creada) no se bloquea el delete. */
+  async function noteTombstone(c, uid, table, id) {
+    try {
+      await c.from(T_TOMB).upsert({ id: table + ':' + id, user_id: uid, table_name: table, record_id: id, deleted_at: new Date().toISOString() }, { onConflict: 'id' });
+    } catch (e) { /* noop: se reintentará con reconcile */ }
+  }
 
   function loadQueue() {
     try { var q = JSON.parse(localStorage.getItem(LS_QUEUE) || '[]'); return Array.isArray(q) ? q : []; } catch (e) { return []; }
@@ -34,6 +54,7 @@
         if (!rec) { // borrado
           var del = await c.from(table).delete().eq('id', id).eq('user_id', uid);
           if (del.error) throw del.error;
+          await noteTombstone(c, uid, table, id);
           return true;
         }
         // last-write-wins: no pisar si remoto es más nuevo
@@ -53,6 +74,7 @@
       if (!stored) {
         var d2 = await c.from(table).delete().eq('id', id).eq('user_id', uid);
         if (d2.error) throw d2.error;
+        await noteTombstone(c, uid, table, id);
         return true;
       }
       try{
@@ -105,40 +127,110 @@
     return totalOk;
   }
 
-  async function pullAll() {
-    var c = root.Supa && root.Supa.getClient ? root.Supa.getClient() : null;
-    if (!c || !root.Supa.isConfigured()) return { pulled: 0 };
-    var sess = await root.Supa.getSession();
-    if (!sess) return { pulled: 0 };
-    var total = 0;
-    for (var t = 0; t < TABLES.length; t++) {
-      var table = TABLES[t];
-      try {
-        var res = await c.from(table).select('id,data,updated_at').eq('user_id', sess.user.id);
-        if (res.error) throw res.error;
-        var rows = res.data || [];
-        for (var i = 0; i < rows.length; i++) {
-          var r = rows[i];
-          // last-write-wins: no pisar local más nuevo
-          try{
-            var local = await root.DB.get(table, r.id);
-            if(local && local._updated_at && r.updated_at && local._updated_at > r.updated_at){
-              // local más nuevo -> no pisar, se subirá en próximo push
-              continue;
-            }
-            if(r.data) r.data._updated_at = r.updated_at;
-          }catch(e){}
-          await root.DB.put(table, r.data);
-          total++;
-        }
-        // Nota: no borramos locales que no estén en remoto en v1 (evita pérdida si pull parcial)
-        // Los borrados locales se propagan vía pushOne(delete) con cola LS_QUEUE
-      } catch (e) {
-        console.warn('[Sync] pull fallo', table, e && e.message ? e.message : e);
+  /* Descarga novedades. Incremental por defecto (solo updated_at posterior al
+     último pull OK); {full:true} descarga todo y reconcilia borrados: elimina
+     copias locales que ya no existen en remoto (solo si tienen _updated_at y
+     no están en la cola pendiente: nunca toca creaciones aún no subidas).
+     Nunca rechaza: devuelve {pulled, repaired}. */
+  async function pullAll(opts) {
+    try {
+      opts = opts || {};
+      var c = root.Supa && root.Supa.getClient ? root.Supa.getClient() : null;
+      if (!c || !root.Supa.isConfigured()) return { pulled: 0, repaired: 0 };
+      var sess = await root.Supa.getSession();
+      if (!sess || !sess.user) return { pulled: 0, repaired: 0 };
+      var uid = sess.user.id;
+      var lastPull = null;
+      try { lastPull = localStorage.getItem(LS_LAST_PULL) || null; } catch (e) {}
+      var incremental = !opts.full && !!lastPull;
+      var since = null;
+      if (incremental) {
+        try { since = new Date(new Date(lastPull).getTime() - PULL_MARGIN_MS).toISOString(); }
+        catch (e) { incremental = false; }
       }
+      var nowIso = new Date().toISOString();
+      var total = 0, repaired = 0, errors = 0;
+
+      // 1) Lápidas: borrados hechos en otros dispositivos
+      try {
+        var tq = c.from(T_TOMB).select('table_name,record_id').eq('user_id', uid);
+        if (incremental) tq = tq.gt('deleted_at', since);
+        var tres = await tq;
+        if (tres.error) throw tres.error;
+        var qq = loadQueue();
+        var tombs = tres.data || [];
+        for (var ti = 0; ti < tombs.length; ti++) {
+          var tb = tombs[ti];
+          if (TABLES.indexOf(tb.table_name) === -1 || !tb.record_id) continue;
+          var pend = false;
+          for (var qi = 0; qi < qq.length; qi++) {
+            if (qq[qi].table === tb.table_name && qq[qi].id === tb.record_id && qq[qi].op !== 'delete') { pend = true; break; }
+          }
+          if (pend) continue; // hay edición local pendiente: gana el próximo push
+          try { await root.DB.del(tb.table_name, tb.record_id); repaired++; } catch (eDel) {}
+        }
+        // poda de lápidas antiguas
+        try { await c.from(T_TOMB).delete().eq('user_id', uid).lt('deleted_at', new Date(Date.now() - TOMB_PRUNE_MS).toISOString()); } catch (ePrune) {}
+      } catch (eT) {
+        if (!isMissingTable(eT)) { console.warn('[Sync] pull lápidas', eT && eT.message ? eT.message : eT); errors++; }
+      }
+
+      // 2) Tablas
+      for (var t = 0; t < TABLES.length; t++) {
+        var table = TABLES[t];
+        try {
+          var sel = c.from(table).select('id,data,updated_at').eq('user_id', uid);
+          if (incremental) sel = sel.gt('updated_at', since);
+          var res = await sel;
+          if (res.error) throw res.error;
+          var rows = res.data || [];
+          for (var i = 0; i < rows.length; i++) {
+            var r = rows[i];
+            // last-write-wins: no pisar local más nuevo
+            try{
+              var local = await root.DB.get(table, r.id);
+              if(local && local._updated_at && r.updated_at && local._updated_at > r.updated_at){
+                // local más nuevo -> no pisar, se subirá en próximo push
+                continue;
+              }
+              if(r.data) r.data._updated_at = r.updated_at;
+            }catch(e){}
+            await root.DB.put(table, r.data);
+            total++;
+          }
+          // 3) Reconciliación (solo en pull completo OK): borra copias locales
+          // de filas que ya no existen en remoto (cubre borrados anteriores a
+          // las lápidas). Conservador: exige _updated_at y ausencia en cola.
+          if (!incremental) {
+            var remoteIds = {};
+            for (var ri = 0; ri < rows.length; ri++) remoteIds[rows[ri].id] = true;
+            var locals = await root.DB.getAll(table);
+            var pq = loadQueue();
+            for (var li = 0; li < locals.length; li++) {
+              var rec = locals[li];
+              if (!rec || remoteIds[rec.id]) continue;
+              if (!rec._updated_at) continue; // creado local, aún no sincronizado
+              var hasPend = false;
+              for (var pi = 0; pi < pq.length; pi++) {
+                if (pq[pi].table === table && pq[pi].id === rec.id) { hasPend = true; break; }
+              }
+              if (hasPend) continue;
+              try { await root.DB.del(table, rec.id); repaired++; } catch (eRd) {}
+            }
+          }
+        } catch (e) {
+          console.warn('[Sync] pull fallo', table, e && e.message ? e.message : e);
+          errors++;
+        }
+      }
+      if (!errors) {
+        try { localStorage.setItem(LS_LAST_PULL, nowIso); } catch (e) {}
+      }
+      return { pulled: total, repaired: repaired };
+    } catch (eTop) {
+      console.warn('[Sync] pullAll', eTop && eTop.message ? eTop.message : eTop);
+      return { pulled: 0, repaired: 0 };
     }
-    try { localStorage.setItem(LS_LAST_PULL, new Date().toISOString()); } catch (e) {}
-    return { pulled: total };
   }
 
   async function pushAllLocal() {
@@ -170,10 +262,29 @@
     var sess = await root.Supa.getSession();
     if (!sess || !sess.user) return { ok: false, reason: 'no-session' };
     var uid = sess.user.id;
+    // ids previos para dejar lápidas (si no, los otros dispositivos resucitan)
+    var idsByTable = {};
     for (var t = 0; t < TABLES.length; t++) {
-      var r = await c.from(TABLES[t]).delete().eq('user_id', uid);
+      try {
+        var lr = await c.from(TABLES[t]).select('id').eq('user_id', uid);
+        if (!lr.error && lr.data) {
+          idsByTable[TABLES[t]] = lr.data.map(function (x) { return x.id; });
+        }
+      } catch (e) {}
+    }
+    for (var d = 0; d < TABLES.length; d++) {
+      var r = await c.from(TABLES[d]).delete().eq('user_id', uid);
       if (r.error) throw r.error;
     }
+    try {
+      var tombs = [];
+      Object.keys(idsByTable).forEach(function (tb) {
+        idsByTable[tb].forEach(function (rid) {
+          tombs.push({ id: tb + ':' + rid, user_id: uid, table_name: tb, record_id: rid, deleted_at: new Date().toISOString() });
+        });
+      });
+      if (tombs.length) await c.from(T_TOMB).upsert(tombs, { onConflict: 'id' });
+    } catch (eT) {}
     saveQueue([]);
     try { localStorage.removeItem(LS_LAST_PULL); } catch (e) {}
     return { ok: true };
@@ -229,9 +340,15 @@
     if (_started) return;
     _started = true;
     window.addEventListener('online', function () { pushQueue(); pullAll(); });
-    document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'visible' && isOnline()) pushQueue(); });
-    // intento periódico
-    setInterval(function () { if (isOnline()) pushQueue(); }, 30000);
+    document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'visible' && isOnline()) { pushQueue(); pullAll(); } });
+    // push cada 30s; pull incremental cada 60s (barato: solo novedades)
+    var tick = 0;
+    setInterval(function () {
+      if (!isOnline()) return;
+      pushQueue();
+      tick++;
+      if (tick % 2 === 0) pullAll();
+    }, 30000);
   }
 
   root.Sync = {
