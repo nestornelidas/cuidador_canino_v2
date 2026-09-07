@@ -99,6 +99,7 @@
   var LS_LAST_PUSH_RUN = 'cc_sync_last_push_run_v1';
   var LS_LAST_PUSH_OK = 'cc_sync_last_push_ok_v1';
   var LS_LAST_ERR = 'cc_sync_last_err_v1';
+  var LS_LAST_SAVE = 'cc_sync_last_save_v1';
   function stamp(key, val) { try { localStorage.setItem(key, val === undefined ? new Date().toISOString() : val); } catch (e) {} }
   function stampErr(m) { stamp(LS_LAST_ERR, new Date().toISOString() + ' ' + String(m || '').slice(0, 200)); }
 
@@ -325,6 +326,7 @@
       if (!orig) return;
       obj[method] = async function () {
         var res = await orig.apply(obj, arguments);
+        try { stamp(LS_LAST_SAVE); } catch (eS) {}
         try {
           var tableMap = { saveDog: 'dogs', saveService: 'services', saveEvent: 'events', saveTemplate: 'templates', saveContact: 'contacts', _putContact: 'contacts' };
           var table = tableMap[method];
@@ -352,6 +354,7 @@
       if (!orig) return;
       root.Store[m] = async function (id) {
         var r = await orig.apply(root.Store, arguments);
+        try { stamp(LS_LAST_SAVE); } catch (eS) {}
         try { enqueue(delMap[m], id, 'delete'); if (isOnline() && root.Supa && root.Supa.isConfigured()) pushQueue(); } catch (e) {}
         return r;
       };
@@ -389,6 +392,7 @@
     LS_LAST_PULL: LS_LAST_PULL,
     LS_LAST_PUSH_RUN: LS_LAST_PUSH_RUN,
     LS_LAST_PUSH_OK: LS_LAST_PUSH_OK,
-    LS_LAST_ERR: LS_LAST_ERR
+    LS_LAST_ERR: LS_LAST_ERR,
+    LS_LAST_SAVE: LS_LAST_SAVE
   };
 })(typeof window !== 'undefined' ? window : globalThis);
