@@ -78,7 +78,7 @@
     html += '<div class="form-field"><label>Supabase anon key</label><input type="password" class="input" id="supaKey" value="' + UI.esc(supaKey) + '" placeholder="eyJhbG..." autocomplete="off"></div>';
     html += '<div class="form-actions"><button class="btn btn-primary" id="saveSupa">' + UI.icon('check') + ' Guardar nube</button> <button class="btn" id="clearSupa">' + UI.icon('x') + ' Desactivar nube</button></div>';
     html += '<div class="form-field"><div class="static-val" id="supaStatus">' + (isSupaCfg ? 'Configurada - recarga para activar login por email' : 'No configurada (modo offline)') + '</div></div>';
-    html += '<div class="btn-stack"><button class="btn" id="btnSupaPull">' + UI.icon('download') + ' Sincronizar ahora (pull)</button><button class="btn" id="btnSupaPush">' + UI.icon('upload') + ' Subir datos locales a nube (push)</button><button class="btn" id="btnSupaRepair">' + UI.icon('refresh') + ' Reparar sincronización</button></div>';
+    html += '<div class="btn-stack"><button class="btn" id="btnSupaPull">' + UI.icon('download') + ' Sincronizar ahora (pull)</button><button class="btn" id="btnSupaPush">' + UI.icon('upload') + ' Subir datos locales a nube (push)</button><button class="btn" id="btnSupaRepair">' + UI.icon('refresh') + ' Reparar sincronización</button><button class="btn" id="btnSupaDiag">' + UI.icon('copy') + ' Copiar diagnóstico</button></div>';
     html += '<p class="hint">Reparar descarga todo de nuevo y elimina copias locales de datos ya borrados en otro dispositivo.</p>';
     html += '<p class="hint">Estado cola: <span id="supaQueueInfo">-</span> · Último pull: <span id="supaLastPull">-</span> · Último push: <span id="supaLastPush">-</span></p>';
     html += '<p class="hint">Último error: <span id="supaLastErr">-</span> · Último cambio local: <span id="supaLastSave">-</span></p>';
@@ -529,6 +529,14 @@
         try { await root.Sync.pushQueue(); } catch(eQ){}
         var r=await root.Sync.pullAll({full:true, repair:true});
         updInfo(); UI.toast('Reparado: '+r.pulled+' actualizados, '+r.repaired+' eliminados','success'); App.refresh();
+      });
+      var diagBtn=document.getElementById('btnSupaDiag');
+      if(diagBtn) diagBtn.addEventListener('click', async function(){
+        try {
+          var d=await root.Sync.diag();
+          await UI.copyText(JSON.stringify(d, null, 1));
+          UI.toast('Diagnóstico copiado. Pégalo en el chat.', 'success');
+        } catch(e){ UI.toast('No se pudo copiar el diagnóstico', 'error'); }
       });
     })();
 

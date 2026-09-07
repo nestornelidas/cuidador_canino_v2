@@ -378,6 +378,43 @@
     }, 30000);
   }
 
+  function ls(key) { try { return localStorage.getItem(key) || null; } catch (e) { return null; } }
+
+  /* Diagnóstico en una llamada: URL/contexto, versión, sesión, cola, sellos y
+     si los métodos Store están realmente envueltos (hooked). Para pegar en el
+     chat cuando algo no sincroniza. Nunca rechaza. */
+  async function diag() {
+    var out = {
+      href: (typeof location !== 'undefined' ? String(location.href) : ''),
+      ua: (typeof navigator !== 'undefined' ? String(navigator.userAgent).slice(0, 120) : ''),
+      swVer: root.__CC_VER__ || null,
+      online: isOnline(),
+      configured: false,
+      session: null,
+      queue: [],
+      lastPull: ls(LS_LAST_PULL),
+      lastPushOk: ls(LS_LAST_PUSH_OK),
+      lastErr: ls(LS_LAST_ERR),
+      lastSave: ls(LS_LAST_SAVE),
+      hooked: {}
+    };
+    try { out.configured = !!(root.Supa && root.Supa.isConfigured && root.Supa.isConfigured()); } catch (e) {}
+    try { out.queue = loadQueue(); } catch (e) {}
+    if (root.Store) {
+      ['saveDog', 'saveService', 'saveEvent', 'saveTemplate', 'saveContact', 'deleteService', 'deleteDogPhysical', 'deleteContact', 'deleteEvent', 'deleteTemplate'].forEach(function (m) {
+        try { out.hooked[m] = String(root.Store[m]).indexOf('enqueue') !== -1; }
+        catch (e) { out.hooked[m] = 'err'; }
+      });
+    }
+    try {
+      if (root.Supa && root.Supa.getSession) {
+        var s = await root.Supa.getSession();
+        out.session = (s && s.user) ? (s.user.email || s.user.id) : null;
+      }
+    } catch (e) { out.session = 'err'; }
+    return out;
+  }
+
   root.Sync = {
     TABLES: TABLES,
     enqueue: enqueue,
@@ -388,6 +425,7 @@
     wipeRemote: wipeRemote,
     hookStore: hookStore,
     startAutoSync: startAutoSync,
+    diag: diag,
     LS_QUEUE: LS_QUEUE,
     LS_LAST_PULL: LS_LAST_PULL,
     LS_LAST_PUSH_RUN: LS_LAST_PUSH_RUN,
