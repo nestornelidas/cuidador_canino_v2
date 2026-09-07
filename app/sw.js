@@ -2,7 +2,7 @@
    Al publicar cambios en js/css, sube VERSION para forzar la actualización del caché. */
 'use strict';
 
-var VERSION = 'cuidador-canino-v27';
+var VERSION = 'cuidador-canino-v28';
 var SHELL_CACHE = VERSION;
 
 var PRECACHE = [
@@ -39,12 +39,15 @@ var PRECACHE = [
 self.addEventListener('install', function (e) {
   e.waitUntil(
     caches.open(SHELL_CACHE).then(function (cache) {
-      return cache.addAll(PRECACHE).catch(function (err) {
-        // tolerante: si un recurso falla (p.ej. icono), cachea lo que sí existe
-        return Promise.all(PRECACHE.map(function (url) {
+      // cache:'reload' = la caché HTTP nunca cuela ficheros viejos en la caché
+      // de la nueva versión (evita mezclas v-nueva/v-vieja). Tolerante por fichero.
+      return Promise.all(PRECACHE.map(function (url) {
+        try {
+          return cache.add(new Request(url, { cache: 'reload' })).catch(function () {});
+        } catch (err) {
           return cache.add(url).catch(function () {});
-        }));
-      });
+        }
+      }));
     }).then(function () {
       return self.skipWaiting();
     })

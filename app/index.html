@@ -61,7 +61,10 @@
 <script defer src="js/app.js"></script>
 <script>
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('sw.js');
+  // updateViaCache:'none' = el navegador comprueba siempre si hay sw.js nuevo,
+  // sin que la caché HTTP retrase la actualización hasta 24h.
+  try { navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }); }
+  catch (e) { navigator.serviceWorker.register('sw.js'); }
 }
 </script>
 </body>
