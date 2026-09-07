@@ -51,7 +51,7 @@
     }
 
     var html = '';
-    html += '<div class="view-head"><h1>Inicio</h1><p class="view-sub">Hoy, ' + C.fmtDMY(today) + '</p>' +
+    html += '<div class="view-head"><h1>Inicio</h1><p class="view-sub">Hoy, ' + C.fmtDMY(today) + ' · <span class="muted" id="appVer"></span></p>' +
       '<div class="view-actions">' +
       '<button class="btn btn-primary" id="dashNewService">' + UI.icon('plus') + ' Nuevo servicio</button>' +
       '<button class="btn btn-primary" id="dashNewEvent">' + UI.icon('plus') + ' Nuevo evento</button>' +
@@ -129,6 +129,20 @@
     container.querySelectorAll('[data-go]').forEach(function (b) {
       b.addEventListener('click', function () { ctx.go(b.dataset.go); });
     });
+
+    /* Versión de la app (fuente única: sw.js). Sirve para comprobar que el
+       dispositivo ya ejecuta la última versión publicada. */
+    (function paintVer() {
+      function set(t) { var el = document.getElementById('appVer'); if (el) el.textContent = t; }
+      if (root.__CC_VER__) { set(root.__CC_VER__); return; }
+      try {
+        fetch('sw.js', { cache: 'no-store' }).then(function (r) { return r.text(); }).then(function (t) {
+          var m = /VERSION\s*=\s*'([^']+)'/.exec(t || '');
+          root.__CC_VER__ = m ? String(m[1]).replace(/^cuidador-canino-/, 'v') : '';
+          set(root.__CC_VER__);
+        }).catch(function () {});
+      } catch (e) {}
+    })();
   }
 
   root.Views = root.Views || {};
