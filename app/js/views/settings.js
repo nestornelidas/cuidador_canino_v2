@@ -516,7 +516,8 @@
         var sess=await root.Supa.getSession();
         if(!sess){ UI.toast('Inicia sesión primero','error'); return; }
         UI.toast('Reparando sincronización...','info');
-        var r=await root.Sync.pullAll({full:true});
+        try { await root.Sync.pushQueue(); } catch(eQ){}
+        var r=await root.Sync.pullAll({full:true, repair:true});
         updInfo(); UI.toast('Reparado: '+r.pulled+' actualizados, '+r.repaired+' eliminados','success'); App.refresh();
       });
     })();

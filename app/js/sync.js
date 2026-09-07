@@ -209,7 +209,9 @@
             for (var li = 0; li < locals.length; li++) {
               var rec = locals[li];
               if (!rec || remoteIds[rec.id]) continue;
-              if (!rec._updated_at) continue; // creado local, aún no sincronizado
+              // Sin sello solo se perdona en automático (podría ser creación
+              // aún no subida); en reparación manual se asume copia obsoleta.
+              if (!rec._updated_at && !opts.repair) continue; // creado local, aún no sincronizado
               var hasPend = false;
               for (var pi = 0; pi < pq.length; pi++) {
                 if (pq[pi].table === table && pq[pi].id === rec.id) { hasPend = true; break; }
