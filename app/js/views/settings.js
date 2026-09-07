@@ -80,7 +80,8 @@
     html += '<div class="form-field"><div class="static-val" id="supaStatus">' + (isSupaCfg ? 'Configurada - recarga para activar login por email' : 'No configurada (modo offline)') + '</div></div>';
     html += '<div class="btn-stack"><button class="btn" id="btnSupaPull">' + UI.icon('download') + ' Sincronizar ahora (pull)</button><button class="btn" id="btnSupaPush">' + UI.icon('upload') + ' Subir datos locales a nube (push)</button><button class="btn" id="btnSupaRepair">' + UI.icon('refresh') + ' Reparar sincronización</button></div>';
     html += '<p class="hint">Reparar descarga todo de nuevo y elimina copias locales de datos ya borrados en otro dispositivo.</p>';
-    html += '<p class="hint">Estado cola: <span id="supaQueueInfo">-</span> · Último pull: <span id="supaLastPull">-</span></p>';
+    html += '<p class="hint">Estado cola: <span id="supaQueueInfo">-</span> · Último pull: <span id="supaLastPull">-</span> · Último push: <span id="supaLastPush">-</span></p>';
+    html += '<p class="hint">Último error: <span id="supaLastErr">-</span></p>';
     html += '</section>';
 
     /* --- Colores del calendario --- */
@@ -467,12 +468,18 @@
       var pushBtn=document.getElementById('btnSupaPush');
       function updInfo(){
         try{
-          var q=JSON.parse(localStorage.getItem('cc_sync_queue_v1')||'[]');
+          var q=JSON.parse(localStorage.getItem((root.Sync&&root.Sync.LS_QUEUE)||'cc_sync_queue_v1')||'[]');
           var el=document.getElementById('supaQueueInfo');
           if(el) el.textContent=q.length+' pendientes';
-          var lp=localStorage.getItem('cc_sync_last_pull_v1')||'-';
+          var lp=localStorage.getItem((root.Sync&&root.Sync.LS_LAST_PULL)||'cc_sync_last_pull_v1')||'-';
           var el2=document.getElementById('supaLastPull');
           if(el2) el2.textContent=lp;
+          var pu=localStorage.getItem((root.Sync&&root.Sync.LS_LAST_PUSH_OK)||'cc_sync_last_push_ok_v1')||'-';
+          var el3=document.getElementById('supaLastPush');
+          if(el3) el3.textContent=pu;
+          var le=localStorage.getItem((root.Sync&&root.Sync.LS_LAST_ERR)||'cc_sync_last_err_v1')||'-';
+          var el4=document.getElementById('supaLastErr');
+          if(el4) el4.textContent=le;
         }catch(e){}
       }
       updInfo();

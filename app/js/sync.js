@@ -94,19 +94,28 @@
     }
   }
 
+  /* Sellos de observabilidad: cuándo se intentó, cuándo subió algo y último
+     error. Se muestran en Configuración > Nube para diagnosticar. */
+  var LS_LAST_PUSH_RUN = 'cc_sync_last_push_run_v1';
+  var LS_LAST_PUSH_OK = 'cc_sync_last_push_ok_v1';
+  var LS_LAST_ERR = 'cc_sync_last_err_v1';
+  function stamp(key, val) { try { localStorage.setItem(key, val === undefined ? new Date().toISOString() : val); } catch (e) {} }
+  function stampErr(m) { stamp(LS_LAST_ERR, new Date().toISOString() + ' ' + String(m || '').slice(0, 200)); }
+
   /* Mutex: nunca dos pasadas solapadas. Si entran elementos nuevos durante una
      pasada, se hace otra vuelta (acotada); si solo quedan fallos, se sale. */
   var _pushing = false;
   async function pushQueue() {
-    if (!isOnline()) return 0;
-    var c = root.Supa && root.Supa.getClient ? root.Supa.getClient() : null;
-    if (!c || !root.Supa.isConfigured()) return 0;
-    var sess = await root.Supa.getSession();
-    if (!sess) return 0;
     if (_pushing) return 0;
     _pushing = true;
     var totalOk = 0;
     try {
+      if (!isOnline()) return 0;
+      var c = root.Supa && root.Supa.getClient ? root.Supa.getClient() : null;
+      if (!c || !root.Supa.isConfigured()) return 0;
+      var sess = await root.Supa.getSession();
+      if (!sess) return 0;
+      var startLen = loadQueue().length;
       for (var pass = 0; pass < 5; pass++) {
         var q = loadQueue();
         if (!q.length) break;
@@ -121,10 +130,16 @@
         // otra vuelta solo si entraron elementos nuevos durante la pasada
         if (loadQueue().length <= remaining.length) break;
       }
+      stamp(LS_LAST_PUSH_RUN);
+      if (totalOk > 0) stamp(LS_LAST_PUSH_OK);
+      else if (startLen > 0) stampErr('0 subidos con ' + startLen + ' en cola (¿sesión? ¿red? ¿permisos?)');
+      return totalOk;
+    } catch (eTop) {
+      stampErr(eTop && eTop.message ? eTop.message : eTop);
+      return totalOk;
     } finally {
       _pushing = false;
     }
-    return totalOk;
   }
 
   /* Descarga novedades. Incremental por defecto (solo updated_at posterior al
@@ -371,6 +386,9 @@
     hookStore: hookStore,
     startAutoSync: startAutoSync,
     LS_QUEUE: LS_QUEUE,
-    LS_LAST_PULL: LS_LAST_PULL
+    LS_LAST_PULL: LS_LAST_PULL,
+    LS_LAST_PUSH_RUN: LS_LAST_PUSH_RUN,
+    LS_LAST_PUSH_OK: LS_LAST_PUSH_OK,
+    LS_LAST_ERR: LS_LAST_ERR
   };
 })(typeof window !== 'undefined' ? window : globalThis);
