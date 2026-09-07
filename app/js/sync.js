@@ -150,6 +150,12 @@
       }
       var nowIso = new Date().toISOString();
       var total = 0, repaired = 0, errors = 0;
+      // Intención local pendiente: lo que está en cola (editado o borrado y
+      // aún no subido) no debe pisarlo el pull; ya lo resolverá el push.
+      var pendingSet = {};
+      try {
+        loadQueue().forEach(function (e) { if (e && e.table && e.id) pendingSet[e.table + ':' + e.id] = e.op || 'upsert'; });
+      } catch (eQ) {}
 
       // 1) Lápidas: borrados hechos en otros dispositivos
       try {
@@ -186,6 +192,7 @@
           var rows = res.data || [];
           for (var i = 0; i < rows.length; i++) {
             var r = rows[i];
+            if (pendingSet[table + ':' + r.id]) continue; // intención local pendiente
             // last-write-wins: no pisar local más nuevo
             try{
               var local = await root.DB.get(table, r.id);
