@@ -138,7 +138,7 @@
       try {
         fetch('sw.js', { cache: 'no-store' }).then(function (r) { return r.text(); }).then(function (t) {
           var m = /VERSION\s*=\s*'([^']+)'/.exec(t || '');
-          root.__CC_VER__ = m ? String(m[1]).replace(/^cuidador-canino-/, 'v') : '';
+          root.__CC_VER__ = m ? String(m[1]).replace(/^cuidador-canino-/, '') : '';
           set(root.__CC_VER__);
         }).catch(function () {});
       } catch (e) {}
