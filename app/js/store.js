@@ -94,10 +94,24 @@
     return c;
   }
 
+  function applyRemoteConfig(remoteCfg) {
+    if (!remoteCfg || typeof remoteCfg !== 'object') return;
+    var cur = getConfig();
+    var merged = Object.assign(defaultConfig(), cur, remoteCfg);
+    if (merged.google) merged.google = Object.assign(defaultConfig().google, (cur && cur.google) || {}, (remoteCfg && remoteCfg.google) || {});
+    localStorage.setItem(CONFIG_KEY, JSON.stringify(merged));
+    _cfgRaw = null; _cfgCache = null;
+    if (root.App && root.App.updateBrand) {
+      try { root.App.updateBrand(); } catch (e) {}
+    }
+    return merged;
+  }
+
   var Store = {
     uid: function () { return 'id_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 10); },
     getConfig: getConfig,
     setConfig: setConfig,
+    applyRemoteConfig: applyRemoteConfig,
     defaultConfig: defaultConfig,
     defaultComportamientos: defaultComportamientos,
     defaultCaptacion: defaultCaptacion,

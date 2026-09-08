@@ -85,6 +85,98 @@
     }
   };
 
+  function isEditingForm() {
+    var p = parseHash();
+    if ((p.name === 'perros' || p.name === 'servicios') && p.params.length > 0 && p.params[0] !== 'list') return true;
+    if (document.querySelector('.modal-wrap') || document.querySelector('.auth-gate')) return true;
+    return false;
+  }
+
+  function initDataChangeListener() {
+    window.addEventListener('cc:data-changed', function (e) {
+      if (isEditingForm()) {
+        UI.toast('Se han recibido novedades desde otro dispositivo', 'info');
+      } else {
+        App.refresh();
+      }
+    });
+  }
+
+  function initSyncIndicator() {
+    var dot = document.getElementById('syncDot');
+    var label = document.getElementById('syncLabel');
+    var btn = document.getElementById('btnSyncStatus');
+    if (!dot || !label || !btn) return;
+
+    function applyStatus(st, detail) {
+      dot.className = 'sync-dot';
+      if (st === 'synced') {
+        dot.classList.add('sync-synced');
+        label.textContent = 'En línea';
+        btn.title = 'Sincronizado en tiempo real con la nube';
+      } else if (st === 'syncing') {
+        dot.classList.add('sync-syncing');
+        label.textContent = 'Sincronizando…';
+        btn.title = 'Sincronizando cambios con la nube…';
+      } else if (st === 'offline') {
+        dot.classList.add('sync-offline');
+        label.textContent = 'Offline';
+        btn.title = 'Modo sin conexión a internet (los cambios se guardan localmente)';
+      } else if (st === 'error') {
+        dot.classList.add('sync-error');
+        label.textContent = 'Aviso';
+        btn.title = 'Aviso de sincronización: ' + ((detail && detail.message) || 'pulsa para ver detalles');
+      } else {
+        dot.classList.add('sync-unconfigured');
+        label.textContent = 'Local';
+        btn.title = 'Modo local (Supabase no configurado)';
+      }
+    }
+
+    if (root.Sync && root.Sync.getStatus) applyStatus(root.Sync.getStatus());
+    if (root.Sync && root.Sync.onStatusChange) {
+      root.Sync.onStatusChange(function (st, detail) { applyStatus(st, detail); });
+    }
+    window.addEventListener('cc:sync-status', function (e) {
+      if (e.detail) applyStatus(e.detail.status, e.detail.detail);
+    });
+
+    btn.addEventListener('click', async function () {
+      if (!root.Supa || !root.Supa.isConfigured()) {
+        App.go('configuracion');
+        UI.toast('Configura Supabase en la sección Nube para activar sincronización multidispositivo', 'info');
+        return;
+      }
+      var diag = root.Sync && root.Sync.diag ? await root.Sync.diag() : {};
+      var modal = UI.modal({
+        title: 'Estado de la Nube',
+        body: '<div class="sync-modal-body">' +
+          '<p><strong>Estado:</strong> ' + UI.esc(dot.className.replace('sync-dot sync-', '')) + ' (' + (diag.online ? 'Con conexión' : 'Sin conexión') + ')</p>' +
+          '<p><strong>Usuario:</strong> ' + UI.esc(diag.session || 'Sin sesión') + '</p>' +
+          '<p><strong>Cambios pendientes:</strong> ' + (diag.queue ? diag.queue.length : 0) + '</p>' +
+          '<p class="hint">Último pull: ' + UI.esc(diag.lastPull || 'Nunca') + '<br>Último push: ' + UI.esc(diag.lastPushOk || 'Nunca') + '</p>' +
+          '</div>',
+        footer: '<button class="btn" data-act="pull">' + UI.icon('download') + ' Sincronizar (Pull)</button> ' +
+          '<button class="btn" data-act="push">' + UI.icon('upload') + ' Subir (Push)</button> ' +
+          '<button class="btn btn-primary" data-act="close">Cerrar</button>'
+      });
+      modal.el.querySelector('[data-act="close"]').addEventListener('click', function () { modal.close(); });
+      modal.el.querySelector('[data-act="pull"]').addEventListener('click', async function () {
+        UI.toast('Sincronizando...', 'info');
+        var res = await root.Sync.pullAll({ full: true });
+        UI.toast('Pull completado: ' + res.pulled + ' actualizados', 'success');
+        modal.close();
+        App.refresh();
+      });
+      modal.el.querySelector('[data-act="push"]').addEventListener('click', async function () {
+        UI.toast('Subiendo pendientes...', 'info');
+        var res = await root.Sync.pushQueue();
+        UI.toast('Push completado: ' + res + ' registros subidos', 'success');
+        modal.close();
+      });
+    });
+  }
+
   function initNav() {
     document.querySelectorAll('#mainnav .nav-btn').forEach(function (b) {
       b.addEventListener('click', function () { App.go(b.dataset.view); });
@@ -96,6 +188,8 @@
     });
     var lockBtn = document.getElementById('btnLock');
     if (lockBtn) lockBtn.addEventListener('click', function () { App.lock(); });
+    initSyncIndicator();
+    initDataChangeListener();
   }
 
 

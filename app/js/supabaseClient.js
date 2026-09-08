@@ -47,7 +47,12 @@
       return null;
     }
     _client = g.createClient(getUrl(), getKey(), {
-      auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false }
+      auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false },
+      realtime: {
+        params: {
+          eventsPerSecond: 10
+        }
+      }
     });
     return _client;
   }

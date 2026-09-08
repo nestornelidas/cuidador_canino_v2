@@ -73,7 +73,7 @@
     var supaKey = (root.Supa && root.Supa.getKey) ? root.Supa.getKey() : '';
     var isSupaCfg = !!(supaUrl && supaKey);
     html += '<section class="card"><h2>' + UI.icon('cloud') + ' Nube (Supabase) - sincronización móvil y PC</h2>';
-    html += '<p class="hint">Configura Supabase (gratis) para ver los mismos datos en móvil y PC. Sin configurar, la app sigue 100% offline. Ver <code>supabase/README.md</code> y <code>supabase/schema.sql</code>.</p>';
+    html += '<p class="hint">Configura Supabase (gratis) para sincronizar en tiempo real entre móvil y PC. Sin configurar, la app sigue 100% offline. Ver <code>supabase/README.md</code> y <code>supabase/schema_unified.sql</code>.</p>';
     html += '<div class="form-field"><label>Supabase URL</label><input type="text" class="input" id="supaUrl" value="' + UI.esc(supaUrl) + '" placeholder="https://xxxxx.supabase.co"></div>';
     html += '<div class="form-field"><label>Supabase anon key</label><input type="password" class="input" id="supaKey" value="' + UI.esc(supaKey) + '" placeholder="eyJhbG..." autocomplete="off"></div>';
     html += '<div class="form-actions"><button class="btn btn-primary" id="saveSupa">' + UI.icon('check') + ' Guardar nube</button> <button class="btn" id="clearSupa">' + UI.icon('x') + ' Desactivar nube</button></div>';
@@ -176,6 +176,11 @@
               '<button type="button" class="icon-btn" data-move-down title="Bajar">' + UI.icon('chevron_down') + '</button>' +
               '</div>' +
               '<input class="input" data-item-texto value="' + UI.esc(item.t) + '">' +
+              '<select class="input" data-item-grupo title="Mover a categoría">' +
+              grupos.map(function (gr, gri) {
+                return '<option value="' + gri + '"' + (gri === gi ? ' selected' : '') + '>' + UI.esc(gr.titulo || ('Categoría ' + (gri + 1))) + '</option>';
+              }).join('') +
+              '</select>' +
               '<button type="button" class="icon-btn btn-danger-soft" data-del-item title="Borrar comportamiento">' + UI.icon('x') + '</button>' +
               '</div>';
           }).join('') + '</div>' +
@@ -193,7 +198,19 @@
         grupos[+t.closest('.behav-group').dataset.gi].items[+t.closest('.behav-item-row').dataset.ii].t = t.value;
       }
     });
-    // selector de grupo eliminado: cada comportamiento permanece en su categoría
+    ed.addEventListener('change', function (e) {
+      var t = e.target;
+      if (t.hasAttribute('data-item-grupo')) {
+        var gFrom = +t.closest('.behav-group').dataset.gi;
+        var iFrom = +t.closest('.behav-item-row').dataset.ii;
+        var gTo = +t.value;
+        if (gFrom !== gTo && grupos[gTo]) {
+          var moved = grupos[gFrom].items.splice(iFrom, 1)[0];
+          grupos[gTo].items.push(moved);
+          renderBehaviors();
+        }
+      }
+    });
     ed.addEventListener('click', function (e) {
       var b = e.target.closest('button');
       if (!b) return;

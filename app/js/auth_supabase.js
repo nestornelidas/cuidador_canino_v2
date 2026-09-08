@@ -171,11 +171,27 @@
           if(ok){ if(root.Sync){ root.Sync.hookStore(); root.Sync.startAutoSync(); } resolve(); return; }
         }
       }catch(e){}
-      // Si hay sesión Supabase pero Crypto bloqueado -> pedir contraseña para desbloquear (misma que supabase)
+      // Si hay sesión Supabase pero Crypto bloqueado -> traer salt remoto y pedir contraseña maestra
       var hasSess = await hasSupaSession();
-      if (hasSess && Crypto.configured() && !Crypto.isUnlocked()) {
-        // Reusa Gate login (pide contraseña maestra = supabase pass)
-        return root.Gate.boot().then(function () { if (root.Sync) root.Sync.startAutoSync(); resolve(); });
+      if (hasSess) {
+        try {
+          var c3 = Supa.getClient();
+          var u3 = (await c3.auth.getUser()).data?.user;
+          if (u3) {
+            var r3 = await c3.from('user_config').select('crypto_state').eq('user_id', u3.id).maybeSingle();
+            if (r3.data?.crypto_state) Crypto.setState(r3.data.crypto_state);
+          }
+        } catch (e3) {}
+        if (Crypto.configured() && !Crypto.isUnlocked()) {
+          return root.Gate.boot().then(function () {
+            if (root.Sync) {
+              root.Sync.hookStore();
+              root.Sync.startAutoSync();
+              root.Sync.initRealtime();
+            }
+            resolve();
+          });
+        }
       }
       // Si no hay sesión -> mostrar gate Supabase
       root.AuthSupa._resolve = resolve;

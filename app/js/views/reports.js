@@ -39,6 +39,7 @@
     html += '<section class="card print-area"><div class="chart-head"><h2>' + UI.icon('dog') + ' Perros cuidados <span class="count-badge" id="dogsCount">0</span></h2><button class="btn btn-soft btn-sm no-print" id="csvDogs">' + UI.icon('download') + ' CSV</button></div>';
     html += '<div class="table-wrap"><table class="table"><thead><tr>' +
       '<th></th><th data-key="nombre" data-type="text">Nombre</th>' +
+      '<th data-key="edad" data-type="num">Edad</th>' +
       '<th data-key="acum" data-type="num">Importe acumulado</th>' +
       '</tr></thead><tbody id="dogsTbody"></tbody></table></div>';
     html += '</section>';
@@ -167,7 +168,7 @@
     function renderDogs() {
       var tbody = document.getElementById('dogsTbody');
       if (!dogRows.length) {
-        tbody.innerHTML = '<tr><td colspan="3" class="empty-cell">Sin perros con servicios en el período seleccionado.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="4" class="empty-cell">Sin perros con servicios en el período seleccionado.</td></tr>';
         return;
       }
       var sorted = dogRows.slice();
@@ -178,6 +179,7 @@
         return '<tr class="dog-row" data-id="' + d.id + '">' +
           '<td>' + UI.avatarHtml(d, 40) + '</td>' +
           '<td><strong>' + UI.esc(d.nombre) + '</strong>' + (d.activo === false ? ' <span class="badge badge-cancelado">inactivo</span>' : '') + '</td>' +
+          '<td>' + UI.esc(r.edadText || '—') + '</td>' +
           '<td><strong>' + C.fmtMoney(r.acum) + '</strong></td></tr>';
       }).join('');
       tbody.querySelectorAll('.dog-row').forEach(function (tr) {
