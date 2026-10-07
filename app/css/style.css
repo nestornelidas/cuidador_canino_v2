@@ -311,6 +311,11 @@ body {
   margin-bottom: 4px;
   color: #334155;
 }
+/* Fila de 2 campos lado a lado (ej.: Fecha inicio + Fecha fin del evento) */
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+@media (max-width: 560px) {
+  .form-row { grid-template-columns: 1fr; }
+}
 
 .input {
   width: 100%;
