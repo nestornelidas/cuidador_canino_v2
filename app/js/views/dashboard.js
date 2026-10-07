@@ -5,7 +5,6 @@
 
   async function render(container, params, ctx) {
     var today = C.todayISO();
-    var days7 = C.addDaysISO(today, 100);
 
     var [services, dogs, todayEvents] = await Promise.all([
       Store.listServices(),
@@ -20,14 +19,10 @@
     });
     var boarding = active.filter(function (s) { return s.tipo === 'hospedaje'; });
     var walks = active.filter(function (s) { return s.tipo === 'paseo'; });
+    /* Todos los servicios futuros (desde hoy en adelante), sin límite de días ni de cantidad */
     var upcoming = services.filter(function (s) {
-      return s.estado !== 'cancelado' && s.desde >= today && s.desde <= days7;
+      return s.estado !== 'cancelado' && s.desde >= today;
     }).sort(function (a, b) { return a.desde.localeCompare(b.desde) || a.hasta.localeCompare(b.hasta); });
-    if (!upcoming.length) {
-      upcoming = services.filter(function (s) {
-        return s.estado !== 'cancelado' && s.desde >= today;
-      }).sort(function (a, b) { return a.desde.localeCompare(b.desde) || a.hasta.localeCompare(b.hasta); }).slice(0, 3);
-    }
 
     function serviceLinkHtml(s, extra) {
       return '<button class="link-chip" data-go="servicios/edit/' + s.id + '">' +
@@ -110,7 +105,7 @@
     if (!upcoming.length) {
       html += '<p class="muted empty">No hay servicios programados a partir de hoy.</p>';
     } else {
-      html += '<p class="hint">Próximos 100 días, o los 3 siguientes si no hay ninguno antes.</p>';
+      html += '<p class="hint">Todos los servicios futuros, sin límite de fecha.</p>';
       html += '<div class="dash-list">';
       upcoming.forEach(function (s) {
         html += '<div class="dash-item"><span class="dash-date">' + C.fmtLongDMY(s.desde) + '</span>' +
