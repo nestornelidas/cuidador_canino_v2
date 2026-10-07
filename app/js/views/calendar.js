@@ -107,6 +107,7 @@
     html += '<div class="cal-body">';
     var monthEventsSorted = monthEvents.slice().sort(function (a, b) {
       return (a.fecha || '').localeCompare(b.fecha || '') ||
+        String(Store.eventEnd(a) || '').localeCompare(String(Store.eventEnd(b) || '')) ||
         String(a.hora || '').localeCompare(String(b.hora || '')) ||
         String(a.descripcion || '').localeCompare(String(b.descripcion || ''));
     });
@@ -136,14 +137,22 @@
         if (colStart === -1) return;
         items.push({ kind: 'svc', s: s, colStart: colStart, colEnd: colEnd, lane: pack(colStart, colEnd) });
       });
-      /* Los eventos se apilan tras los servicios: ocupan siempre un carril libre */
+      /* Los eventos se apilan tras los servicios: ocupan siempre un carril libre.
+         Pueden durar varios días consecutivos (fecha..fecha_fin) y partirse por semanas. */
       monthEventsSorted.forEach(function (ev) {
+        if (!ev.fecha) return;
+        var evStart = ev.fecha;
+        var evEnd = (Store.eventEnd(ev) || ev.fecha);
+        var colStart = -1, colEnd = -1;
         for (var i = 0; i < 7; i++) {
-          if (weekIsos[i] === ev.fecha) {
-            items.push({ kind: 'ev', ev: ev, colStart: i, colEnd: i, lane: pack(i, i) });
-            return;
+          var dISO = weekIsos[i];
+          if (evStart <= dISO && evEnd >= dISO) {
+            if (colStart === -1) colStart = i;
+            colEnd = i;
           }
         }
+        if (colStart === -1) return;
+        items.push({ kind: 'ev', ev: ev, colStart: colStart, colEnd: colEnd, lane: pack(colStart, colEnd) });
       });
 
       var laneH = 20, gap = 3;
@@ -172,8 +181,12 @@
               '<span class="cal-bar-label">' + UI.esc(label) + '</span></button>';
           } else {
             var ev = it.ev;
-            var label = ev.hora ? ev.hora + ' ' + ev.descripcion : ev.descripcion;
-            var tipEv = 'Evento · ' + C.fmtDMY(ev.fecha) + (ev.hora ? ' ' + ev.hora : '') + ' · ' + ev.descripcion;
+            var evEndLbl = (Store.eventEnd(ev) || ev.fecha);
+            var isMulti = evEndLbl && evEndLbl !== ev.fecha;
+            var label = !isMulti && ev.hora ? ev.hora + ' ' + ev.descripcion : ev.descripcion;
+            var tipEv = 'Evento · ' + C.fmtDMY(ev.fecha) +
+              (isMulti ? ' → ' + C.fmtDMY(evEndLbl) : (ev.hora ? ' ' + ev.hora : '')) +
+              ' · ' + ev.descripcion;
             var eCol = eventoColor(colores);
             html += '<button type="button" class="cal-bar" data-tipo="evento" data-evento="' + ev.id + '" style="left:' + leftPct + '%;width:' + widthPct +
               '%;top:' + topPx + 'px;background:' + eCol + '" title="' + UI.esc(tipEv) + '">' +
@@ -243,12 +256,17 @@
     }
   }
 
-  /* Modal de evento esporádico (nuevo/editar/borrar) */
+  /* Modal de evento esporádico (nuevo/editar/borrar).
+     Admite eventos de un solo día o de varios días consecutivos (ej.: vacaciones)
+     mediante Fecha inicio + Fecha fin. Un rango de varios días es siempre de día completo. */
   function openEventModal(ev, ctx) {
     ev = ev || {};
+    var initFin = ev.fecha_fin || ev.fecha || '';
     var body = document.createElement('div');
     body.innerHTML =
-      '<div class="form-field"><label>Fecha *</label><input type="date" class="input" id="evFecha" value="' + UI.esc(ev.fecha || '') + '"></div>' +
+      '<div class="form-row"><div class="form-field"><label>Fecha inicio *</label><input type="date" class="input" id="evFecha" value="' + UI.esc(ev.fecha || '') + '"></div>' +
+      '<div class="form-field"><label>Fecha fin</label><input type="date" class="input" id="evFechaFin" value="' + UI.esc(initFin) + '"></div></div>' +
+      '<p class="hint" id="evRangeHint">Deja la fecha fin vacía o igual al inicio para un evento de un día. Pon una fecha posterior para varios días seguidos (ej.: vacaciones).</p>' +
       '<div class="form-field"><label>Cuándo</label><select class="input" id="evCuando">' +
       '<option value="todo"' + (ev.todo_dia !== false ? ' selected' : '') + '>Todo el día</option>' +
       '<option value="hora"' + (ev.todo_dia === false ? ' selected' : '') + '>A una hora</option>' +
@@ -256,7 +274,7 @@
       '<div class="form-field" id="evHoraWrap" ' + (ev.todo_dia === false ? '' : 'hidden') + '><label>Hora</label><input type="time" class="input" id="evHora" value="' + UI.esc(ev.hora || '') + '"></div>' +
       '<div class="form-field"><label>Descripción *</label><textarea class="input" id="evDesc" rows="3" placeholder="Primera visita, entrega de llaves, recogida...">' + UI.esc(ev.descripcion || '') + '</textarea></div>' +
       '<div class="form-field align-end"><a class="btn btn-primary" id="evGCalLink" target="_blank" rel="noopener noreferrer" href="#">' + UI.icon('calendar') + ' Crear evento en Google Calendar</a>' +
-      '<p class="hint">Se usa la fecha y, si es a una hora, la hora indicada arriba. Para los avisos (minutos, horas o días) usa la app de Google Calendar.</p></div>' +
+      '<p class="hint">Se usan las fechas y, si es a una hora (solo eventos de un día), la hora indicada arriba. Para los avisos (minutos, horas o días) usa la app de Google Calendar.</p></div>' +
       '<div class="form-errors" id="evErrors" hidden></div>';
     var footer = (ev.id ? '<button type="button" class="btn btn-danger" id="evDelete">' + UI.icon('trash') + ' Borrar</button>' : '') +
       '<button type="button" class="btn" id="evCancel">Cancelar</button>' +
@@ -270,14 +288,32 @@
     var btnDelete = m.el.querySelector('#evDelete');
     var gcalLink = m.el.querySelector('#evGCalLink');
     var inpFecha = body.querySelector('#evFecha');
+    var inpFechaFin = body.querySelector('#evFechaFin');
     var inpHora = body.querySelector('#evHora');
     var inpDesc = body.querySelector('#evDesc');
 
+    function isMultiDay() {
+      var ini = inpFecha.value, fin = inpFechaFin.value || ini;
+      return !!(ini && fin && fin > ini);
+    }
+    function syncCuandoState() {
+      if (isMultiDay()) {
+        cuando.value = 'todo';
+        cuando.disabled = true;
+        horaWrap.hidden = true;
+      } else {
+        cuando.disabled = false;
+        horaWrap.hidden = cuando.value === 'todo';
+      }
+    }
     function pad2(n) { return (n < 10 ? '0' : '') + n; }
     function refreshGCal() {
+      syncCuandoState();
       var fecha = inpFecha.value;
+      var fechaFin = inpFechaFin.value || fecha;
       var desc = inpDesc.value.trim();
-      var todo = cuando.value === 'todo';
+      var multi = isMultiDay();
+      var todo = multi || cuando.value === 'todo';
       var hora = todo ? null : inpHora.value;
       if (!fecha || !desc || (!todo && !hora)) {
         gcalLink.removeAttribute('href');
@@ -287,18 +323,20 @@
       }
       var d = fecha.split('-');
       var y = +d[0], mo = +d[1] - 1, dia = +d[2];
-      var dates;
+      var dates, detFecha;
       if (todo) {
-        dates = fmtGCalDate(new Date(y, mo, dia)) + '/' + fmtGCalDate(new Date(y, mo, dia));
+        var e = (fechaFin || fecha).split('-');
+        dates = fmtGCalDate(new Date(y, mo, dia)) + '/' + fmtGCalDate(new Date(+e[0], +e[1] - 1, +e[2]));
+        detFecha = multi ? 'Del ' + C.fmtDMY(fecha) + ' al ' + C.fmtDMY(fechaFin) : 'Fecha: ' + C.fmtDMY(fecha);
       } else {
         var tp = hora.split(':');
         var start = new Date(y, mo, dia, +tp[0], +tp[1], 0);
         var end = new Date(start.getTime() + 60 * 60 * 1000);
         dates = fmtGCalDT(start) + '/' + fmtGCalDT(end);
+        detFecha = 'Hora: ' + hora + '\nFecha: ' + C.fmtDMY(fecha);
       }
       var det = 'Evento (Cuidador Canino).\n\n' +
-        (todo ? 'Todo el día' : 'Hora: ' + hora) + '\n' +
-        'Fecha: ' + C.fmtDMY(fecha) + '\n' +
+        (todo ? 'Todo el día\n' + detFecha : detFecha) + '\n' +
         'Descripción: ' + desc;
       gcalLink.href = 'https://calendar.google.com/calendar/render?action=TEMPLATE' +
         '&text=' + encodeURIComponent(desc) +
@@ -316,6 +354,7 @@
     refreshGCal();
     cuando.addEventListener('change', function () { horaWrap.hidden = cuando.value === 'todo'; refreshGCal(); });
     inpFecha.addEventListener('input', refreshGCal);
+    inpFechaFin.addEventListener('input', refreshGCal);
     inpHora.addEventListener('input', refreshGCal);
     inpDesc.addEventListener('input', refreshGCal);
     btnCancel.addEventListener('click', function () { m.close(); });
@@ -323,18 +362,21 @@
     function save() {
       var errs = [];
       var fecha = body.querySelector('#evFecha').value;
+      var fechaFin = body.querySelector('#evFechaFin').value || fecha;
       var desc = body.querySelector('#evDesc').value.trim();
-      var todo = cuando.value === 'todo';
+      var multi = !!(fecha && fechaFin && fechaFin > fecha);
+      var todo = multi || cuando.value === 'todo';
       var hora = todo ? null : body.querySelector('#evHora').value;
-      if (!fecha) errs.push('La fecha es obligatoria.');
+      if (!fecha) errs.push('La fecha de inicio es obligatoria.');
       if (!desc) errs.push('La descripción es obligatoria.');
+      if (fecha && fechaFin && fechaFin < fecha) errs.push('La fecha fin no puede ser anterior a la de inicio.');
       if (!todo && !hora) errs.push('Indica la hora del evento.');
       if (errs.length) {
         errBox.innerHTML = '<strong>Revisa el formulario:</strong><ul>' + errs.map(function (s) { return '<li>' + UI.esc(s) + '</li>'; }).join('') + '</ul>';
         errBox.hidden = false;
         return;
       }
-      Store.saveEvent({ id: ev.id, fecha: fecha, todo_dia: todo, hora: hora, descripcion: desc }).then(function () {
+      Store.saveEvent({ id: ev.id, fecha: fecha, fecha_fin: multi ? fechaFin : null, todo_dia: todo, hora: hora, descripcion: desc }).then(function () {
         m.close();
         UI.toast(ev.id ? 'Evento actualizado' : 'Evento creado', 'success');
         if (ctx && ctx.refresh) ctx.refresh();

@@ -92,7 +92,10 @@
     } else {
       html += '<div class="dash-list">';
       todayEvents.forEach(function (ev) {
+        var evEnd = (Store.eventEnd(ev) || ev.fecha);
+        var isMulti = evEnd && evEnd !== ev.fecha;
         var label = ev.todo_dia ? 'Todo el día' : (ev.hora || '');
+        if (isMulti) label += ' · ' + C.fmtDMY(ev.fecha) + ' → ' + C.fmtDMY(evEnd);
         html += '<button class="dash-item dash-item-btn" data-go="calendario/evento/' + ev.id + '">' +
           '<span class="dash-date">' + UI.esc(label) + '</span>' +
           '<span>' + UI.esc(ev.descripcion) + '</span>' +

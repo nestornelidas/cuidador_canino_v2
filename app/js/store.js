@@ -253,12 +253,23 @@
       await DB.putAll('templates', TemplateData.DEFAULT_TEMPLATES);
     },
 
-    /* ---- Eventos esporádicos (cifrado transparente de la descripción) ---- */
+    /* ---- Eventos esporádicos (cifrado transparente de la descripción) ----
+       Un evento puede durar varios días consecutivos (ej.: vacaciones):
+       - fecha: inicio (YYYY-MM-DD, obligatorio)
+       - fecha_fin: fin inclusivo (YYYY-MM-DD, opcional; si falta equivale a fecha) */
+    eventEnd: function (ev) {
+      if (!ev) return null;
+      var fin = ev.fecha_fin || ev.fecha;
+      /* Compat: si fecha_fin es anterior (dato antiguo corrupto), usa fecha */
+      if (fin && ev.fecha && fin < ev.fecha) return ev.fecha;
+      return fin || ev.fecha;
+    },
     async listEvents() {
       var list = (await DB.getAll('events')) || [];
       var out = await Promise.all(list.map(function (r) { return Crypto.decryptRecord('event', r); }));
       return out.sort(function (a, b) {
         return String(a.fecha).localeCompare(String(b.fecha)) ||
+          String(Store.eventEnd(a) || '').localeCompare(String(Store.eventEnd(b) || '')) ||
           String(a.hora || '').localeCompare(String(b.hora || '')) ||
           String(a.descripcion).localeCompare(String(b.descripcion), 'es');
       });
@@ -267,14 +278,27 @@
     listEventsStored: function () { return DB.getAll('events'); },
     async listEventsInRange(fromISO, toISO) {
       var all = await Store.listEvents();
-      return all.filter(function (e) { return e.fecha && e.fecha >= fromISO && e.fecha <= toISO; });
+      return all.filter(function (e) {
+        if (!e.fecha) return false;
+        var start = e.fecha;
+        var end = Store.eventEnd(e) || e.fecha;
+        return start <= toISO && end >= fromISO;
+      });
     },
     async getEvent(id) {
       var r = await DB.get('events', id);
       return r ? Crypto.decryptRecord('event', r) : undefined;
     },
     async saveEvent(ev) {
+      ev = Object.assign({}, ev);
       ev.id = ev.id || Store.uid();
+      /* Normaliza fecha_fin: se omite si está vacía o coincide con fecha (evento de 1 día) */
+      if (!ev.fecha_fin || ev.fecha_fin === ev.fecha) delete ev.fecha_fin;
+      /* Un evento de varios días siempre es de día completo: la hora no aplica */
+      if (ev.fecha_fin && ev.fecha_fin > ev.fecha) {
+        ev.todo_dia = true;
+        ev.hora = null;
+      }
       await DB.put('events', await Crypto.encryptRecord('event', ev));
       return ev;
     },
